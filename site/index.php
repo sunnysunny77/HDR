@@ -16,6 +16,8 @@
 
   <div class="container">
 
+    <h1>0-9 Handwritten digit recognition</h1>
+
     <canvas id="canvas"></canvas>
 
     <div class="buttons">
