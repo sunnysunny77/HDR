@@ -15,12 +15,19 @@
 <body data-overlayscrollbars-initializey>
 
   <div class="container">
+
     <canvas id="canvas"></canvas>
+
     <div class="buttons">
+
       <button id="clearBtn">Clear</button>
+
       <button id="predictBtn">Predict</button>
+
     </div>
+
     <div id="prediction">Prediction: ?</div>
+
   </div>
 
   <script src="./js/app.min.js" defer></script>
