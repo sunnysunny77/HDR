@@ -8,21 +8,36 @@ const clearBtn = document.getElementById("clearBtn");
 const predictBtn = document.getElementById("predictBtn");
 const predictionDiv = document.getElementById("prediction");
 
-function setupCanvas() {
+function resizeCanvas() {
+  const maxWidth = 400; // max width in px
+  const remInPx = parseFloat(getComputedStyle(document.documentElement).fontSize); // 1rem in px
+  const padding = 20 + remInPx * 2; // 20px + 2rem
+
+  const viewportWidth = window.innerWidth;
+  const canvasWidth = Math.min(viewportWidth - padding, maxWidth);
+
+  // Set canvas display size (CSS)
+  canvas.style.width = `${canvasWidth}px`;
+  canvas.style.height = `${canvasWidth}px`;
+
+  // Set canvas internal pixel size
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = canvas.clientWidth * dpr;
-  canvas.height = canvas.clientHeight * dpr;
-  canvas.style.width = `${canvas.clientWidth}px`;
-  canvas.style.height = `${canvas.clientHeight}px`;
+  canvas.width = canvasWidth * dpr;
+  canvas.height = canvasWidth * dpr;
+
+  // Reset and apply transform
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
 
+  // Fill background black
   ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-
-  canvas.style.touchAction = "none";
+  ctx.fillRect(0, 0, canvasWidth, canvasWidth);
 }
 
-setupCanvas();
+resizeCanvas();
+window.addEventListener("resize", () => {
+  resizeCanvas();
+});
 
 let drawing = false;
 
@@ -62,11 +77,24 @@ clearBtn.addEventListener("click", () => {
 predictBtn.addEventListener("click", predict);
 
 function preprocessCanvas() {
-  return tf.browser.fromPixels(canvas, 1)
-    .resizeNearestNeighbor([28, 28])
-    .toFloat()
-    .div(255.0)
-    .expandDims(0); // shape: [1, 28, 28, 1]
+  // Use an offscreen canvas to avoid scaling artifacts
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = 28;
+  tempCanvas.height = 28;
+  const tempCtx = tempCanvas.getContext("2d");
+
+  // Draw scaled-down version of the main canvas
+  tempCtx.drawImage(canvas, 0, 0, 28, 28);
+
+  return tf.tidy(() => {
+    const img = tf.browser.fromPixels(tempCanvas, 1)
+      .toFloat()
+      .div(255.0);
+
+    // Invert colors (white digit on black → black digit on white)
+    const inverted = tf.sub(1, img);
+    return inverted.expandDims(0); // shape: [1, 28, 28, 1]
+  });
 }
 
 async function predict() {
@@ -87,7 +115,7 @@ async function predict() {
     return { prediction, confidence };
   });
 
-  const labelMap = "0123456789";  // only digits 0-9
+  const labelMap = "0123456789"; // update if you have more classes
   const label = labelMap[prediction] ?? "?";
   predictionDiv.innerText = `Prediction: ${label} (${(confidence * 100).toFixed(2)}%)`;
 
@@ -106,7 +134,7 @@ export const tfjs = async () => {
   }
 
   try {
-    model = await tf.loadGraphModel("tfjs_model/model.json"); // simplified model path
+    model = await tf.loadGraphModel("tfjs_model/model.json");
     predictionDiv.innerText = "Model ready. Draw and click Predict.";
     console.log("Model loaded.");
   } catch (error) {
