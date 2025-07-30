@@ -25,9 +25,12 @@ body {
     background: transparent;
 }
 
+h1 {
+  font-size: clamp(17px, 2.5vw, 19px);
+}
 
 .container {
-  max-width: 400px;
+  max-width: 280px;
   margin: 2rem auto;
   padding: 1rem;
   background: #222;
@@ -36,7 +39,6 @@ body {
   color: white;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   user-select: none;
-
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -45,8 +47,6 @@ body {
 
 // Canvas styling
 canvas {
-  width: 100%;       // responsive width
-  height: 300px;     // fixed height
   border-radius: 10px;
   background-color: black;
   touch-action: none; // prevent scrolling on mobile while drawing

@@ -14,7 +14,7 @@
 
 <body data-overlayscrollbars-initializey>
 
-  <div class="container">
+  <div class="container" id="container">
 
     <h1>0-9 Handwritten digit recognition</h1>
 
