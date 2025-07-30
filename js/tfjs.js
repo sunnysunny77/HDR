@@ -26,29 +26,31 @@ predictBtn.addEventListener("click", async () => {
   let processed;
   try {
     processed = tf.tidy(() => {
-      const tensor = tf.browser.fromPixels(canvas, 1); // Grayscale
-      const resized = tf.image.resizeBilinear(tensor, [28, 28], true); // alignCorners=true
-      const normalized = resized.toFloat().div(tf.scalar(255.0));
-      return normalized.expandDims(0); // shape: [1, 28, 28, 1]
+      const imgTensor = tf.browser.fromPixels(canvas);
+      const gray = imgTensor.mean(2);
+      const resized = tf.image.resizeBilinear(gray.expandDims(-1), [28, 28], true);
+      const normalized = resized.div(255);
+      return normalized.expandDims(0);
     });
 
-    const output = await model.predict(processed);
+    const output = model.predict(processed);
     const data = await output.data();
 
-    const maxVal = Math.max(...data);
-    const maxIndex = data.indexOf(maxVal);
+    const maxIndex = data.indexOf(Math.max(...data));
+    const maxVal = data[maxIndex];
 
-    predictionDiv.innerText = `Prediction: ${maxIndex}  (Confidence: ${maxVal.toFixed(4)})`;
+    predictionDiv.innerText = `Prediction: ${maxIndex} (Confidence: ${maxVal.toFixed(4)})`;
 
     output.dispose();
   } catch (err) {
     predictionDiv.innerText = "Prediction failed.";
-    console.error("Prediction error:", err);
+    console.error(err);
   } finally {
     processed?.dispose();
     predictBtn.disabled = false;
   }
 });
+
 
 //assume is called loads
 export const tfjs = async () => {
