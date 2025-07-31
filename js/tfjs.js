@@ -1,10 +1,18 @@
 import * as tf from "@tensorflow/tfjs";
 
+// keras.datasets.mnist ai does all preprocessing look good, and drawing?
+
 let model;
 let drawing = false;
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const CANVAS_SIZE = 280;
+canvas.width = CANVAS_SIZE;
+canvas.height = CANVAS_SIZE;
+ctx.strokeStyle = "white";
+ctx.lineWidth = 20;
+ctx.lineCap = "round";
 ctx.fillStyle = "black";
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -26,7 +34,9 @@ predictBtn.addEventListener("click", async () => {
   let processed;
   try {
     processed = tf.tidy(() => {
-      const imgTensor = tf.browser.fromPixels(canvas);
+      const size = canvas.width;
+      const imageData = ctx.getImageData(0, 0, size, size);
+      const imgTensor = tf.browser.fromPixels(imageData);
       const gray = imgTensor.mean(2);
       const resized = tf.image.resizeBilinear(gray.expandDims(-1), [28, 28], true);
       const normalized = resized.div(255);
@@ -103,21 +113,34 @@ canvas.addEventListener("pointermove", e => {
 
 clearBtn.addEventListener("click", () => {
   ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   predictionDiv.innerText = "Prediction: ?";
 });
 
 const resizeCanvas = () => {
-
   const rect = container.getBoundingClientRect();
+  const newSize = Math.min(rect.width, 280);
 
-  const size = Math.min(rect.width, 280);
+  // Backup current image
+  const oldImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-  canvas.width = size;
-  canvas.height = size;
+  // Create a temporary canvas to scale the old image
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+  const tempCtx = tempCanvas.getContext("2d");
+  tempCtx.putImageData(oldImage, 0, 0);
 
+  // Resize actual canvas
+  canvas.width = newSize;
+  canvas.height = newSize;
+
+  // Fill black background
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw old image, scaled to new canvas size
+  ctx.drawImage(tempCanvas, 0, 0, newSize, newSize);
 };
 
 resizeCanvas();
