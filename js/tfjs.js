@@ -118,8 +118,6 @@ const resizeCanvas = () => {
 
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.lineWidth = Math.max(10, size / 20);
 };
 
 resizeCanvas();
