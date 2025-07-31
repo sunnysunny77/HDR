@@ -1,28 +1,28 @@
 html {
-    -webkit-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-    margin: 0;
-    font-family: $font;
-    text-align: center;
-    margin: 20px;
+  margin: 0;
+  font-family: $font;
+  text-align: center;
+  margin: 20px;
 }
 
 // scrollbar
 
 .os-theme-body {
-    --os-size: 7px;
+  --os-size: 7px;
 }
 
 .os-theme-body .os-scrollbar-handle {
-    background: $alpha;
-    border-radius: 0px;
-    height: 85px;
+  background: $alpha;
+  border-radius: 0px;
+  height: 85px;
 }
 
 .os-theme-body .os-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 h1 {
@@ -37,7 +37,7 @@ h1 {
   border-radius: 12px;
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
   color: white;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   user-select: none;
   display: flex;
   flex-direction: column;
@@ -45,16 +45,14 @@ h1 {
   gap: 1rem;
 }
 
-// Canvas styling
 #canvas {
-  width: 100%;         /* Responsive width */
-  max-width: 280px;     /* Match internal resolution */
-  height: auto;         /* Preserve aspect ratio */
+  width: 100%;
+  max-width: 280px;
+  height: auto;
   border: 1px solid #ccc;
-  touch-action: none;   /* Prevent touch scrolling during drawing */
+  touch-action: none;
 }
 
-// Buttons container
 .buttons {
   display: flex;
   gap: 1rem;
@@ -62,7 +60,6 @@ h1 {
   justify-content: center;
 }
 
-// Style buttons
 button {
   flex: 1;
   padding: 0.75rem 1.5rem;
@@ -86,7 +83,6 @@ button {
   }
 }
 
-// Prediction display
 #prediction {
   font-size: 1.25rem;
   font-weight: 700;
