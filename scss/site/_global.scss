@@ -46,11 +46,12 @@ h1 {
 }
 
 // Canvas styling
-canvas {
-  border-radius: 10px;
-  background-color: black;
-  touch-action: none; // prevent scrolling on mobile while drawing
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+#canvas {
+  width: 100%;         /* Responsive width */
+  max-width: 280px;     /* Match internal resolution */
+  height: auto;         /* Preserve aspect ratio */
+  border: 1px solid #ccc;
+  touch-action: none;   /* Prevent touch scrolling during drawing */
 }
 
 // Buttons container
