@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="images/pwa-logo-small.webp" />
 </head>
 
-<body data-overlayscrollbars-initializey>
+<body data-overlayscrollbars-initialize>
 
   <div class="container" id="container">
 
