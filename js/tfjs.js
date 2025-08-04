@@ -129,5 +129,8 @@ clearBtn.addEventListener("click", () => {
 
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  predictionDiv.innerText = "Prediction: ?";
+  predictionDiv.innerHTML = `
+    <b>Predicted:</b> ? <br/>
+    <b>Confidence:</b> ?
+  `;
 });
