@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow_addons as tfa
 from tensorflow import keras
 from tensorflow.keras import mixed_precision
 import numpy as np
@@ -31,9 +32,24 @@ x_train, x_val, y_train, y_val = train_test_split(
 
 # --- tf.image-based data augmentation function ---
 def augment(image, label):
-    image = tf.image.random_brightness(image, 0.1)
-    image = tf.image.random_contrast(image, 0.9, 1.1)
-    # please list some best augments for the data set
+     # Apply random brightness and contrast
+    image = tf.image.random_brightness(image, max_delta=0.2)
+    image = tf.image.random_contrast(image, lower=0.8, upper=1.2)
+
+    # Apply small random rotation (~±10°)
+    angle = tf.random.uniform([], -0.17, 0.17)  # ~±10 degrees
+    image = tfa.image.rotate(image, angles=angle, fill_mode='REFLECT')
+
+    # Random scaling with padding
+    scale = tf.random.uniform([], 0.9, 1.1)
+    new_size = tf.cast(scale * 28, tf.int32)
+    image = tf.image.resize_with_pad(image, new_size, new_size)
+    image = tf.image.resize_with_pad(image, 28, 28)
+
+    # Cutout (random occlusion)
+    image = tf.expand_dims(image, 0)
+    image = tfa.image.random_cutout(image, mask_size=(8, 8), constant_values=0)
+    image = tf.squeeze(image, 0)
     return image, label
 
 # --- Prepare tf.data pipelines ---
@@ -102,3 +118,5 @@ model.fit(
 # --- Evaluate on test data ---
 test_loss, test_acc = model.evaluate(test_ds, verbose=2)
 print(f"Test accuracy: {test_acc:.4f}")
+
+#99.48
