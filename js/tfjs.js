@@ -57,12 +57,11 @@ predictBtn.addEventListener("click", async () => {
   try {
 
     const [maxIndex, maxVal] = tf.tidy(() => {
-
       const img = tf.browser.fromPixels(canvas, 1);
       const resized = tf.image.resizeBilinear(img, [28, 28]);
       const normalized = resized.div(255.0);
-      const batched = normalized.expandDims(0);
-      const prediction = model.predict(batched);
+      const flattened = normalized.reshape([1, 784]);
+      const prediction = model.predict(flattened);
       const values = prediction.dataSync();
       const maxVal = Math.max(...values);
       const maxIndex = values.indexOf(maxVal);
