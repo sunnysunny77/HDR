@@ -55,18 +55,18 @@ predictBtn.addEventListener("click", async () => {
   await tf.nextFrame();
 
   try {
-
-    const [maxIndex, maxVal] = tf.tidy(() => {
+   const [maxIndex, maxVal] = tf.tidy(() => {
       const img = tf.browser.fromPixels(canvas, 1);
       const resized = tf.image.resizeBilinear(img, [28, 28]);
       const normalized = resized.div(255.0);
-      const flattened = normalized.reshape([1, 784]);
-      const prediction = model.predict(flattened);
+      const batched = normalized.expandDims(0);
+      const prediction = model.predict(batched);
       const values = prediction.dataSync();
       const maxVal = Math.max(...values);
       const maxIndex = values.indexOf(maxVal);
       return [maxIndex, maxVal];
     });
+
 
     predictionDiv.innerText = `Prediction: ${maxIndex} (Confidence: ${maxVal.toFixed(4)})`;
   } catch (err) {
