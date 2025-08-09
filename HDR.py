@@ -43,36 +43,28 @@ train_datagen = ImageDataGenerator(
 )
 
 model = models.Sequential([
-    layers.InputLayer(input_shape=(28, 28, 1)),
-    layers.Conv2D(32, 3, padding='same'),
+    
+    layers.Conv2D(64, kernel_size=3, padding='same', activation='relu', input_shape=(28, 28, 1)),
     layers.BatchNormalization(),
-    layers.Activation('relu'),
-    layers.Conv2D(32, 3, padding='same'),
+    layers.Conv2D(64, kernel_size=3, padding='same', activation='relu'),
     layers.BatchNormalization(),
-    layers.Activation('relu'),
-    layers.MaxPooling2D(2),
+    layers.MaxPooling2D(pool_size=2),
     layers.Dropout(0.25),
-    layers.Conv2D(64, 3, padding='same'),
+
+    layers.Conv2D(128, kernel_size=3, padding='same', activation='relu'),
     layers.BatchNormalization(),
-    layers.Activation('relu'),
-    layers.Conv2D(64, 3, padding='same'),
+    layers.Conv2D(128, kernel_size=3, padding='same', activation='relu'),
     layers.BatchNormalization(),
-    layers.Activation('relu'),
-    layers.MaxPooling2D(2),
-    layers.Dropout(0.3),
-    layers.Conv2D(128, 3, padding='same'),
+    layers.MaxPooling2D(pool_size=2),
+    layers.Dropout(0.35),
+
+    layers.Flatten(),
+    layers.Dense(256, activation='relu'),
     layers.BatchNormalization(),
-    layers.Activation('relu'),
-    layers.Conv2D(128, 3, padding='same'),
-    layers.BatchNormalization(),
-    layers.Activation('relu'),
     layers.Dropout(0.4),
-    layers.GlobalAveragePooling2D(),
-    layers.Dense(64),
-    layers.BatchNormalization(),
-    layers.Activation('relu'),
-    layers.Dropout(0.4),
+
     layers.Dense(10, activation='softmax')
+    
 ])
 
 model.compile(
@@ -84,10 +76,9 @@ model.compile(
 model.fit(
     train_datagen.flow(X_train, y_train, batch_size=256),
     validation_data=(X_val, y_val),
-    epochs=10,
+    epochs=17,
     verbose=2
 )
 
 test_loss, test_acc = model.evaluate(X_test, y_test)
 print("test_acc, {} | test_loss, {}".format(test_acc, test_loss))
-#test_acc, 0.9959250092506409 | test_loss, 0.016223134472966194
