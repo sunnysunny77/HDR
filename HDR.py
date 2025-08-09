@@ -31,15 +31,12 @@ X_test = X_test_fixed.reshape(-1, 28, 28, 1)
 X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.15, random_state=42)
 
 train_datagen = ImageDataGenerator(
-    rotation_range=15,
-    width_shift_range=0.15,
-    height_shift_range=0.15,
-    shear_range=0.15,
-    zoom_range=0.15,
-    channel_shift_range=0.1,
-    fill_mode='nearest',
-    horizontal_flip=False,
-    vertical_flip=False
+    rotation_range=8,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.1,
+    zoom_range=0.1,
+    fill_mode='nearest'
 )
 
 model = models.Sequential([
@@ -58,13 +55,19 @@ model = models.Sequential([
     layers.MaxPooling2D(pool_size=2),
     layers.Dropout(0.35),
 
-    layers.Flatten(),
-    layers.Dense(256, activation='relu'),
+    layers.Conv2D(256, kernel_size=3, padding='same', activation='relu'),
     layers.BatchNormalization(),
+    layers.Conv2D(256, kernel_size=3, padding='same', activation='relu'),
+    layers.BatchNormalization(),
+    layers.MaxPooling2D(pool_size=2),
     layers.Dropout(0.4),
 
+    layers.Flatten(),
+    layers.Dense(512, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dropout(0.5),
+
     layers.Dense(10, activation='softmax')
-    
 ])
 
 model.compile(
@@ -82,3 +85,4 @@ model.fit(
 
 test_loss, test_acc = model.evaluate(X_test, y_test)
 print("test_acc, {} | test_loss, {}".format(test_acc, test_loss))
+#test_acc, 0.9973250031471252 | test_loss, 0.012162618339061737
