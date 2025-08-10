@@ -64,6 +64,7 @@ predictBtn.addEventListener("click", async () => {
       const values = prediction.dataSync();
       const maxVal = Math.max(...values);
       const maxIndex = values.indexOf(maxVal);
+
       return [maxIndex, maxVal];
     });
 
