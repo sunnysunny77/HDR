@@ -70,12 +70,6 @@ callbacks = [
     tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3),
 ]
 
-data_augmentation = tf.keras.Sequential([
-    layers.RandomRotation(factor=0.1, fill_mode='nearest'),      
-    layers.RandomTranslation(height_factor=0.1, width_factor=0.1, fill_mode='nearest'),  
-    layers.RandomZoom(height_factor=0.1, width_factor=0.1, fill_mode='nearest'),       
-])
-
 train_ds = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
 val_ds = tf.data.Dataset.from_tensor_slices((X_val, y_val)).batch(BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
 test_ds = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
