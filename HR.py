@@ -11,7 +11,7 @@ tf.config.optimizer.set_jit(True)
 NUM_CLASSES = 10
 IMG_SHAPE = (28, 28, 1)
 BATCH_SIZE = 512
-EPOCHS = 40
+EPOCHS = 66
 AUTOTUNE = tf.data.AUTOTUNE
 WEIGHT_DECAY = 1e-4
 initial_learning_rate = 1e-3
