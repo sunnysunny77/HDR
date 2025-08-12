@@ -46,11 +46,14 @@ h1 {
 }
 
 #canvas {
-  width: 100%;
-  max-width: 280px;
-  height: auto;
-  border: 1px solid #ccc;
+  border: 2px solid #444;
+  background-color: black;
   touch-action: none;
+  cursor: crosshair;
+  display: block;
+  image-rendering: pixelated;
+  user-select: none;
+  box-shadow: 0 0 8px #222;
 }
 
 .buttons {

@@ -9,7 +9,7 @@ const CANVAS_SIZE = 280;
 canvas.width = CANVAS_SIZE;
 canvas.height = CANVAS_SIZE;
 
-ctx.fillStyle = "white";
+ctx.fillStyle = "black";
 ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
 const clearBtn = document.getElementById("clearBtn");
@@ -56,16 +56,15 @@ predictBtn.addEventListener("click", async () => {
 
   try {
     const [maxIndex, maxVal] = tf.tidy(() => {
-      const img = tf.browser.fromPixels(canvas, 1);
-      const inverted = tf.sub(255, img).div(255.0);
-      const resized = tf.image.resizeBilinear(inverted, [28, 28]);
-      const batched = resized.expandDims(0);
-      const prediction = model.predict(batched);
-      const values = prediction.dataSync();
-      const maxVal = Math.max(...values);
-      const maxIndex = values.indexOf(maxVal);
-
-      return [maxIndex, maxVal];
+      let img = tf.browser.fromPixels(canvas);
+      img = tf.image.resizeBilinear(img, [28, 28]);
+      img = img.mean(2).toFloat();
+      img = img.div(255);
+      const input = img.expandDims(0).expandDims(-1);
+      const prediction = model.predict(input);
+      const maxIndexTensor = prediction.argMax(-1);
+      const maxValTensor = prediction.max(-1);
+      return [maxIndexTensor.dataSync()[0], maxValTensor.dataSync()[0]];
     });
 
     predictionDiv.innerText = `Prediction: ${maxIndex} (Confidence: ${maxVal.toFixed(4)})`;
@@ -107,7 +106,7 @@ canvas.addEventListener("pointermove", e => {
   if (drawing) {
 
     const { x, y } = getCanvasCoords(e);
-    ctx.strokeStyle = "black";
+    ctx.strokeStyle = "white";
     ctx.lineWidth = Math.max(10, Math.min(canvas.width, canvas.height) / 20);
     ctx.lineCap = "round";
     ctx.lineTo(x, y);
@@ -126,7 +125,7 @@ canvas.addEventListener("pointermove", e => {
 
 clearBtn.addEventListener("click", () => {
 
-  ctx.fillStyle = "white";
+  ctx.fillStyle = "black";
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   predictionDiv.innerHTML = `
     <b>Predicted:</b> ? <br/>
