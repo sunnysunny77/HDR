@@ -156,7 +156,7 @@ def augment(images, labels):
 train_ds = (
     tf.data.Dataset.from_tensor_slices((X_train, y_train))
     .shuffle(10000)
-    .map(augment, num_parallel_calls=tf.data.AUTOTUNE)
+    #.map(augment, num_parallel_calls=tf.data.AUTOTUNE) canvas seems to work better without augment
     .batch(BATCH_SIZE)
     .prefetch(tf.data.AUTOTUNE)
 )
@@ -212,4 +212,4 @@ pred_labels = pred_probs.argmax(axis=1)
 
 accuracy = accuracy_score(y_test, pred_labels)
 print("Test accuracy:", accuracy)
-#Test accuracy: 0.992475
+#Test accuracy: 0.99

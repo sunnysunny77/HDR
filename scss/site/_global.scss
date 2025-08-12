@@ -54,6 +54,9 @@ h1 {
   image-rendering: pixelated;
   user-select: none;
   box-shadow: 0 0 8px #222;
+  width: 100%;
+  max-width: 280px;
+  height: auto;
 }
 
 .buttons {
