@@ -36,10 +36,10 @@ X_train, X_val, y_train, y_val = train_test_split(
 )
 
 data_augmentation = tf.keras.Sequential([
-    layers.RandomRotation(0.05),  
-    layers.RandomTranslation(0.05, 0.05), 
-    layers.RandomZoom(height_factor=(-0.3, 0.1), width_factor=(-0.3, 0.1)), 
-    layers.RandomContrast(0.05)
+    layers.RandomRotation(0.1),   
+    layers.RandomTranslation(0.1, 0.1), 
+    layers.RandomZoom(0.1),      
+    layers.RandomContrast(0.1)  
 ])
 
 def augment(images, labels):
@@ -119,5 +119,4 @@ pred_labels = pred_probs.argmax(axis=1)
 
 accuracy = accuracy_score(y_test, pred_labels)
 print("Test accuracy:", accuracy)
-
-#Test accuracy: 0.99
+#Test accuracy: 0.9944

@@ -17,70 +17,100 @@ const predictBtn = document.getElementById("predictBtn");
 const predictionDiv = document.getElementById("prediction");
 
 export const tfjs = async () => {
-
   predictionDiv.innerText = "Loading model...";
-
   try {
-
     await tf.setBackend("webgl");
     await tf.ready();
   } catch {
-
     await tf.setBackend("cpu");
     await tf.ready();
   }
-
   try {
-
     model = await tf.loadGraphModel("tfjs_model/model.json");
     predictionDiv.innerText = "Model ready. Draw and click Predict.";
     console.log("Model loaded.");
   } catch (error) {
-
     predictionDiv.innerText = "Failed to load model.";
     console.error("Model loading error:", error);
   }
 };
 
 predictBtn.addEventListener("click", async () => {
-
   if (!model) {
-
     alert("Model not loaded yet.");
     return;
   }
-
   predictBtn.disabled = true;
   predictionDiv.innerText = "Predicting...";
   await tf.nextFrame();
 
   try {
-    const [maxIndex, maxVal] = tf.tidy(() => {
-      let img = tf.browser.fromPixels(canvas);
-      img = tf.image.resizeBilinear(img, [28, 28]);
-      img = img.mean(2).toFloat();
-      img = img.div(255);
-      const input = img.expandDims(0).expandDims(-1);
-      const prediction = model.predict(input);
-      const maxIndexTensor = prediction.argMax(-1);
-      const maxValTensor = prediction.max(-1);
-      return [maxIndexTensor.dataSync()[0], maxValTensor.dataSync()[0]];
-    });
+    const img = tf.browser.fromPixels(canvas)
+      .mean(2)
+      .toFloat()
+      .div(255)
+      .expandDims(-1);
+
+    const mask = img.squeeze(-1).greater(0.7);
+    const coords = await tf.whereAsync(mask);
+
+    if (coords.shape[0] === 0) {
+      img.dispose();
+      mask.dispose();
+      coords.dispose();
+      throw new Error("Empty canvas");
+    }
+
+    const coordsData = await coords.array();
+    let minY = coordsData[0][0], maxY = coordsData[0][0];
+    let minX = coordsData[0][1], maxX = coordsData[0][1];
+
+    for (const [y, x] of coordsData) {
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+    }
+
+    const height = maxY - minY + 1;
+    const width = maxX - minX + 1;
+    const cropped = img.slice([minY, minX, 0], [height, width, 1]);
+
+    const maxSide = Math.max(height, width);
+    const scale = 20 / maxSide;
+    const newH = Math.round(height * scale);
+    const newW = Math.round(width * scale);
+    const resized = tf.image.resizeBilinear(cropped, [newH, newW]);
+
+    const topPad = Math.floor((28 - newH) / 2);
+    const leftPad = Math.floor((28 - newW) / 2);
+    const padded = tf.pad(resized, [[topPad, 28 - newH - topPad], [leftPad, 28 - newW - leftPad], [0, 0]])
+      .expandDims(0);
+
+    const prediction = model.predict(padded);
+    const maxIndex = prediction.argMax(-1).dataSync()[0];
+    const maxVal = prediction.max(-1).dataSync()[0];
+
+    img.dispose();
+    mask.dispose();
+    coords.dispose();
+    cropped.dispose();
+    resized.dispose();
+    padded.dispose();
+    prediction.dispose();
 
     predictionDiv.innerText = `Prediction: ${maxIndex} (Confidence: ${maxVal.toFixed(4)})`;
-  } catch (err) {
-
+  } catch (error) {
     predictionDiv.innerText = "Prediction failed.";
-    console.error(err);
+    if (error.message !== "Empty canvas") {
+      console.error(error);
+    }
   } finally {
-
     predictBtn.disabled = false;
   }
 });
 
-
 function getCanvasCoords(e) {
-
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
@@ -90,11 +120,13 @@ function getCanvasCoords(e) {
 }
 
 canvas.addEventListener("pointerdown", e => {
-
   if (["mouse", "pen", "touch"].includes(e.pointerType)) {
-
     drawing = true;
     const { x, y } = getCanvasCoords(e);
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = Math.max(10, Math.min(canvas.width, canvas.height) / 20);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.beginPath();
     ctx.moveTo(x, y);
     e.preventDefault();
@@ -102,13 +134,8 @@ canvas.addEventListener("pointerdown", e => {
 });
 
 canvas.addEventListener("pointermove", e => {
-
   if (drawing) {
-
     const { x, y } = getCanvasCoords(e);
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = Math.max(10, Math.min(canvas.width, canvas.height) / 20);
-    ctx.lineCap = "round";
     ctx.lineTo(x, y);
     ctx.stroke();
     e.preventDefault();
@@ -116,15 +143,12 @@ canvas.addEventListener("pointermove", e => {
 });
 
 ["pointerup", "pointercancel", "pointerleave"].forEach(evt => {
-
   canvas.addEventListener(evt, () => {
-
     drawing = false;
   });
 });
 
 clearBtn.addEventListener("click", () => {
-
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   predictionDiv.innerHTML = `
