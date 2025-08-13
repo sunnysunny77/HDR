@@ -28,17 +28,18 @@ y = df_train[0]
 X_test = df_test.drop(columns=[0]).to_numpy().reshape(-1, 28, 28, 1)
 y_test = df_test[0]
 
-X = fix_orientation(X) / 255.0
-X_test = fix_orientation(X_test) / 255.0
+X = fix_orientation(X).astype(np.float32) / 255.0
+X_test = fix_orientation(X_test).astype(np.float32) / 255.0
 
 X_train, X_val, y_train, y_val = train_test_split(
     X, y, test_size=0.1, random_state=42, stratify=y
 )
 
 data_augmentation = tf.keras.Sequential([
-    tf.keras.layers.RandomRotation(factor=0.05),           
-    tf.keras.layers.RandomTranslation(0.05, 0.05),  
-    tf.keras.layers.RandomContrast(factor=0.05),          
+    layers.RandomRotation(0.05),  
+    layers.RandomTranslation(0.05, 0.05), 
+    layers.RandomZoom(height_factor=(-0.3, 0.1), width_factor=(-0.3, 0.1)), 
+    layers.RandomContrast(0.05)
 ])
 
 def augment(images, labels):
@@ -48,8 +49,8 @@ def augment(images, labels):
 train_ds = (
     tf.data.Dataset.from_tensor_slices((X_train, y_train))
     .shuffle(10000)
-    .map(augment, num_parallel_calls=tf.data.AUTOTUNE)
     .batch(BATCH_SIZE)
+    .map(augment, num_parallel_calls=tf.data.AUTOTUNE)
     .prefetch(tf.data.AUTOTUNE)
 )
 
@@ -65,16 +66,31 @@ test_ds = (
     .prefetch(tf.data.AUTOTUNE)
 )
 
-model = models.Sequential([
+model = tf.keras.models.Sequential([
     layers.Input(shape=(28, 28, 1)),
-    layers.Conv2D(16, 3, padding='same', activation='relu'),
-    layers.MaxPooling2D(),
-    layers.Conv2D(32, 3, padding='same', activation='relu'),
-    layers.MaxPooling2D(),
-    layers.Conv2D(64, 3, padding='same', activation='relu'),
-    layers.MaxPooling2D(),
+
+    layers.Conv2D(16, (3, 3), padding='same', activation='relu'),
+    layers.BatchNormalization(),
+    layers.Conv2D(16, (3, 3), padding='same', activation='relu'),
+    layers.BatchNormalization(),
+    layers.MaxPooling2D((2, 2)),
+
+    layers.Conv2D(32, (3, 3), padding='same', activation='relu'),
+    layers.BatchNormalization(),
+    layers.Conv2D(32, (3, 3), padding='same', activation='relu'),
+    layers.BatchNormalization(),
+    layers.MaxPooling2D((2, 2)),
+
+    layers.Conv2D(64, (3, 3), padding='same', activation='relu'),
+    layers.BatchNormalization(),
+    layers.Conv2D(64, (3, 3), padding='same', activation='relu'),
+    layers.BatchNormalization(),
+    layers.MaxPooling2D((2, 2)),
+
     layers.Flatten(),
     layers.Dense(128, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dropout(0.4),
     layers.Dense(NUM_CLASSES, activation='softmax', dtype='float32')
 ])
 
@@ -86,7 +102,7 @@ model.compile(
 
 early_stop = tf.keras.callbacks.EarlyStopping(
     monitor='val_loss',
-    patience=3,
+    patience=5,
     restore_best_weights=True
 )
 
