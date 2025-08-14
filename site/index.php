@@ -16,7 +16,7 @@
 
   <div class="container" id="container">
 
-    <h1>0-9 Handwritten digit recognition</h1>
+    <h1>Handwritten recognition</h1>
 
     <canvas id="canvas"></canvas>
 
