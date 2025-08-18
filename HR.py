@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras import mixed_precision
 
 BATCH_SIZE = 512
-NUM_CLASSES = 62
+NUM_CLASSES = 47
 EPOCHS = 100
 
 policy = mixed_precision.Policy('mixed_float16')
@@ -19,8 +19,8 @@ def fix_orientation(images):
     images = np.flip(images, axis=2)
     return images
 
-df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
-df_test = pd.read_csv("./emnist-byclass-test.csv", header=None)
+df_train = pd.read_csv("./emnist-bymerge-train.csv", header=None)
+df_test = pd.read_csv("./emnist-bymerge-test.csv", header=None)
 
 X = df_train.drop(columns=[0]).to_numpy().reshape(-1, 28, 28, 1)
 y = df_train[0]
