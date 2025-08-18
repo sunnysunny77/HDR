@@ -1,32 +1,29 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import tensorflow as tf
-from tensorflow.keras import models, layers
-from sklearn.metrics import accuracy_score
+from tensorflow.keras import layers, models
 from sklearn.model_selection import train_test_split
-from tensorflow.keras import mixed_precision
+from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import accuracy_score
 
 BATCH_SIZE = 512
-NUM_CLASSES = 47
-EPOCHS = 100
+NUM_CLASSES = 62
+EPOCHS = 30
 
-policy = mixed_precision.Policy('mixed_float16')
-mixed_precision.set_global_policy(policy)
+policy = tf.keras.mixed_precision.Policy("mixed_float16")
+tf.keras.mixed_precision.set_global_policy(policy)
 tf.config.optimizer.set_jit(True)
 
 def fix_orientation(images):
-    images = np.rot90(images, k=3, axes=(1, 2))
-    images = np.flip(images, axis=2)
-    return images
+    return np.flip(np.rot90(images, k=3, axes=(1, 2)), axis=2)
 
-df_train = pd.read_csv("./emnist-bymerge-train.csv", header=None)
-df_test = pd.read_csv("./emnist-bymerge-test.csv", header=None)
+df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
+df_test = pd.read_csv("./emnist-byclass-test.csv", header=None)
 
 X = df_train.drop(columns=[0]).to_numpy().reshape(-1, 28, 28, 1)
-y = df_train[0]
-
+y = df_train[0].to_numpy()
 X_test = df_test.drop(columns=[0]).to_numpy().reshape(-1, 28, 28, 1)
-y_test = df_test[0]
+y_test = df_test[0].to_numpy()
 
 X = fix_orientation(X).astype(np.float32) / 255.0
 X_test = fix_orientation(X_test).astype(np.float32) / 255.0
@@ -35,27 +32,24 @@ X_train, X_val, y_train, y_val = train_test_split(
     X, y, test_size=0.1, random_state=42, stratify=y
 )
 
-y_train_oh = tf.one_hot(y_train, NUM_CLASSES)
-y_val_oh = tf.one_hot(y_val, NUM_CLASSES)
-y_test_oh = tf.one_hot(y_test, NUM_CLASSES)
+y_train_oh = tf.keras.utils.to_categorical(y_train, NUM_CLASSES)
+y_val_oh = tf.keras.utils.to_categorical(y_val, NUM_CLASSES)
+y_test_oh = tf.keras.utils.to_categorical(y_test, NUM_CLASSES)
 
 data_augmentation = tf.keras.Sequential([
-    layers.RandomRotation(0.05),
-    layers.RandomTranslation(0.05, 0.05),
-    layers.RandomZoom(0.05, 0.05),
+    layers.RandomRotation(0.05),   
+    layers.RandomTranslation(0.05, 0.05), 
+    layers.RandomZoom(0.05),      
     layers.RandomContrast(0.05),
     layers.GaussianNoise(0.05)
 ])
-
-def augment(images, labels):
-    images = data_augmentation(images)
-    return images, labels
 
 train_ds = (
     tf.data.Dataset.from_tensor_slices((X_train, y_train_oh))
     .shuffle(10000)
     .batch(BATCH_SIZE)
-    .map(augment, num_parallel_calls=tf.data.AUTOTUNE)
+    .map(lambda x, y: (data_augmentation(x, training=True), y),
+         num_parallel_calls=tf.data.AUTOTUNE)
     .prefetch(tf.data.AUTOTUNE)
 )
 
@@ -71,70 +65,84 @@ test_ds = (
     .prefetch(tf.data.AUTOTUNE)
 )
 
-def residual_block(x, filters, stride=1):
+def block(x, filters, dropout_rate=0.0, downsample=False):
     shortcut = x
-    x = layers.Conv2D(filters, (3, 3), strides=stride, padding='same', use_bias=False)(x)
+    strides = 2 if downsample else 1
+
     x = layers.BatchNormalization()(x)
     x = layers.ReLU()(x)
-    x = layers.Conv2D(filters, (3, 3), padding='same', use_bias=False)(x)
+    x = layers.Conv2D(filters, 3, strides=strides, padding="same", use_bias=False)(x)
+
     x = layers.BatchNormalization()(x)
-    
-    if stride != 1 or shortcut.shape[-1] != filters:
-        shortcut = layers.Conv2D(filters, (1, 1), strides=stride, padding='same', use_bias=False)(shortcut)
-        shortcut = layers.BatchNormalization()(shortcut)
-        
-    x = layers.Add()([x, shortcut])
     x = layers.ReLU()(x)
+    if dropout_rate > 0:
+        x = layers.Dropout(dropout_rate)(x)
+    x = layers.Conv2D(filters, 3, padding="same", use_bias=False)(x)
+
+    if shortcut.shape[-1] != filters or downsample:
+        shortcut = layers.Conv2D(filters, 1, strides=strides, padding="same", use_bias=False)(shortcut)
+
+    x = layers.add([x, shortcut])
     return x
 
 inputs = layers.Input(shape=(28, 28, 1))
-x = layers.Conv2D(32, (3, 3), padding='same', use_bias=False)(inputs)
+
+x = layers.Conv2D(64, 3, strides=1, padding="same", use_bias=False)(inputs)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
-x = residual_block(x, 32, stride=1)
 
-x = residual_block(x, 64, stride=2)
-x = residual_block(x, 64, stride=1)
+x = layers.Conv2D(64, 3, strides=1, padding="same", use_bias=False)(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
 
-x = residual_block(x, 128, stride=2)
-x = residual_block(x, 128, stride=1)
+x = block(x, 64, dropout_rate=0.1, downsample=True)
+x = block(x, 64, dropout_rate=0.1)
 
-x = residual_block(x, 256, stride=2)
-x = residual_block(x, 256, stride=1)
+x = block(x, 128, dropout_rate=0.15, downsample=True)
+x = block(x, 128, dropout_rate=0.15)
+x = block(x, 128, dropout_rate=0.15)  
 
 x = layers.GlobalAveragePooling2D()(x)
+x = layers.Dense(128, activation="relu")(x)
+x = layers.Dropout(0.4)(x)
 
-x = layers.Dense(128, use_bias=False)(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-
-x = layers.Dropout(0.6)(x)
-
-outputs = layers.Dense(NUM_CLASSES, activation='softmax', dtype='float32')(x)
+outputs = layers.Dense(NUM_CLASSES, activation="softmax", dtype="float32")(x)
 
 model = models.Model(inputs, outputs)
 
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(
-        learning_rate=tf.keras.optimizers.schedules.CosineDecay(
-            initial_learning_rate=5e-4,
-            decay_steps=len(train_ds) * EPOCHS,
-            alpha=0.001
-        )
-    ),
-    loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.05),
-    metrics=['accuracy']
+steps_per_epoch = tf.data.experimental.cardinality(train_ds).numpy()
+cosine_decay = tf.keras.optimizers.schedules.CosineDecay(
+    initial_learning_rate=1e-3,
+    decay_steps=steps_per_epoch * EPOCHS,
+    alpha=1e-6
 )
 
-model.fit(
+model.compile(
+    optimizer=tf.keras.optimizers.AdamW(learning_rate=cosine_decay, weight_decay=1e-4),
+    loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.05),
+    metrics=["accuracy"]
+)
+
+class_weights = {i: w for i, w in enumerate(compute_class_weight(
+    class_weight="balanced",
+    classes=np.arange(NUM_CLASSES),
+    y=y_train
+))}
+
+callbacks = [
+    tf.keras.callbacks.EarlyStopping(
+        monitor="val_loss",
+        patience=5,
+        restore_best_weights=True
+    )
+]
+
+history = model.fit(
     train_ds,
     epochs=EPOCHS,
     validation_data=val_ds,
-    callbacks=[tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss',
-        patience=17,
-        restore_best_weights=True
-    )],
+    class_weight=class_weights,
+    callbacks=callbacks,
     verbose=2
 )
 
