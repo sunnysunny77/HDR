@@ -3,12 +3,11 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from sklearn.model_selection import train_test_split
-from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import accuracy_score
 
 BATCH_SIZE = 512
 NUM_CLASSES = 62
-EPOCHS = 30
+EPOCHS = 50
 
 policy = tf.keras.mixed_precision.Policy("mixed_float16")
 tf.keras.mixed_precision.set_global_policy(policy)
@@ -69,21 +68,31 @@ inputs = layers.Input(shape=(28, 28, 1))
 x = layers.Conv2D(16, 3, strides=2, padding="same")(inputs)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
-x = layers.Conv2D(16, 3, strides=1, padding="same")(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
 
-x = layers.Conv2D(48, 3, strides=2, padding="same")(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
+blocks = [
+    (16, False),
+    (48, True),
+    (64, False),
+    (128, False)
+]
 
-x = layers.Conv2D(64, 3, strides=2, padding="same")(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
+for filters, downsample in blocks:
+    shortcut = x
+    stride = 2 if downsample else 1
 
-x = layers.Conv2D(128, 3, strides=2, padding="same")(x)
-x = layers.BatchNormalization()(x) 
-x = layers.ReLU()(x)
+    x = layers.Conv2D(filters, 3, strides=stride, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+    
+    x = layers.Conv2D(filters, 3, strides=1, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+
+    if shortcut.shape[-1] != filters or stride != 1:
+        shortcut = layers.Conv2D(filters, 1, strides=stride, padding="same")(shortcut)
+        shortcut = layers.BatchNormalization()(shortcut)
+
+    x = layers.Add()([x, shortcut])
+    x = layers.ReLU()(x)
 
 x = layers.GlobalAveragePooling2D()(x)
 
@@ -93,39 +102,28 @@ outputs = layers.Dense(NUM_CLASSES, activation="softmax")(x)
 
 model = models.Model(inputs, outputs)
 
-steps_per_epoch = len(X_train) // BATCH_SIZE
-
-total_steps = steps_per_epoch * EPOCHS
-
-cosine_decay = tf.keras.optimizers.schedules.CosineDecay(
-    initial_learning_rate=1e-3,
-    decay_steps=total_steps,
-    alpha=0.01
-)
+lr = 1e-3
 
 model.compile(
-    optimizer=tf.keras.optimizers.AdamW(
-        learning_rate=cosine_decay, weight_decay=1e-4
+    optimizer=tf.keras.optimizers.Adam(
+        learning_rate=lr, weight_decay=1e-4
     ),
     loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.05),
     metrics=["accuracy"]
 )
 
-class_weights = {
-    i: w for i, w in enumerate(
-        compute_class_weight(
-            class_weight="balanced",
-            classes=np.arange(NUM_CLASSES),
-            y=y_train
-        )
-    )
-}
-
 callbacks = [
     tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
-        patience=10,
+        patience=5,
         restore_best_weights=True
+    ),
+    tf.keras.callbacks.ReduceLROnPlateau(
+        monitor="val_loss",
+        factor=0.5,
+        patience=3,
+        min_lr=1e-6,
+        verbose=1
     )
 ]
 
@@ -133,7 +131,6 @@ model.fit(
     train_ds,
     epochs=EPOCHS,
     validation_data=val_ds,
-    class_weight=class_weights,
     callbacks=callbacks,
     verbose=2
 )
@@ -143,3 +140,4 @@ pred_labels = tf.argmax(pred_probs, axis=1)
 
 accuracy = accuracy_score(y_test, pred_labels)
 print("Test accuracy:", accuracy)
+#86
