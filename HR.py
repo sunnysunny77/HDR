@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import layers, models
+from tensorflow.keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 BATCH_SIZE = 512
 NUM_CLASSES = 62
-EPOCHS = 50
+EPOCHS = 20
 
 policy = tf.keras.mixed_precision.Policy("mixed_float16")
 tf.keras.mixed_precision.set_global_policy(policy)
@@ -32,73 +33,78 @@ X_train, X_val, y_train, y_val = train_test_split(
     X, y, test_size=0.1, random_state=42, stratify=y
 )
 
-y_train_oh = tf.keras.utils.to_categorical(y_train, NUM_CLASSES)
-y_val_oh = tf.keras.utils.to_categorical(y_val, NUM_CLASSES)
-y_test_oh = tf.keras.utils.to_categorical(y_test, NUM_CLASSES)
+y_train = to_categorical(y_train, num_classes=NUM_CLASSES)
+y_val = to_categorical(y_val, num_classes=NUM_CLASSES)
+y_test = to_categorical(y_test, num_classes=NUM_CLASSES)
 
 data_augmentation = tf.keras.Sequential([
     layers.RandomRotation(0.05),
     layers.RandomTranslation(0.05, 0.05),
     layers.RandomZoom(0.05),
     layers.RandomContrast(0.05),
-    layers.GaussianNoise(0.05),
+    layers.GaussianNoise(0.05)
 ])
 
 train_ds = (
-    tf.data.Dataset.from_tensor_slices((X_train, y_train_oh))
-    .shuffle(10000)
+    tf.data.Dataset.from_tensor_slices((X_train, y_train))
+    .shuffle(65536)
     .batch(BATCH_SIZE)
     .map(lambda x, y: (data_augmentation(x, training=True), y), num_parallel_calls=tf.data.AUTOTUNE)
     .prefetch(tf.data.AUTOTUNE)
 )
 
 val_ds = (
-    tf.data.Dataset.from_tensor_slices((X_val, y_val_oh))
+    tf.data.Dataset.from_tensor_slices((X_val, y_val))
     .batch(BATCH_SIZE)
     .prefetch(tf.data.AUTOTUNE)
 )
 
 test_ds = (
-    tf.data.Dataset.from_tensor_slices((X_test, y_test_oh))
+    tf.data.Dataset.from_tensor_slices((X_test, y_test))
     .batch(BATCH_SIZE)
 )
 
 inputs = layers.Input(shape=(28, 28, 1))
 
-x = layers.Conv2D(16, 3, strides=2, padding="same")(inputs)
+x = layers.Conv2D(16, 3, strides=1, padding="same")(inputs)
+
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+x = layers.Conv2D(16, 3, strides=2, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(16, 3, strides=1, padding="same")(x)
 
-blocks = [
-    (16, False),
-    (48, True),
-    (64, False),
-    (128, False)
-]
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(32, 3, strides=2, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(32, 3, strides=1, padding="same")(x)
 
-for filters, downsample in blocks:
-    shortcut = x
-    stride = 2 if downsample else 1
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(64, 3, strides=2, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(64, 3, strides=1, padding="same")(x)
 
-    x = layers.Conv2D(filters, 3, strides=stride, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    
-    x = layers.Conv2D(filters, 3, strides=1, padding="same")(x)
-    x = layers.BatchNormalization()(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(128, 3, strides=2, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(128, 3, strides=1, padding="same")(x)
 
-    if shortcut.shape[-1] != filters or stride != 1:
-        shortcut = layers.Conv2D(filters, 1, strides=stride, padding="same")(shortcut)
-        shortcut = layers.BatchNormalization()(shortcut)
-
-    x = layers.Add()([x, shortcut])
-    x = layers.ReLU()(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(NUM_CLASSES, 1, padding="same")(x)
 
 x = layers.GlobalAveragePooling2D()(x)
 
-x = layers.Dropout(0.2)(x) 
+x = layers.Dropout(0.15)(x)
 
-outputs = layers.Dense(NUM_CLASSES, activation="softmax")(x)
+outputs = layers.Activation("softmax", dtype="float32")(x)
 
 model = models.Model(inputs, outputs)
 
@@ -129,15 +135,15 @@ callbacks = [
 
 model.fit(
     train_ds,
-    epochs=EPOCHS,
     validation_data=val_ds,
+    epochs=50,
+    verbose=2,
     callbacks=callbacks,
-    verbose=2
 )
 
-pred_probs = model.predict(test_ds)
-pred_labels = tf.argmax(pred_probs, axis=1)
-
-accuracy = accuracy_score(y_test, pred_labels)
+predict = model.predict(test_ds)
+predict_labels = predict.argmax(axis=1)
+y_test_labels = y_test.argmax(axis=1)
+accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
-#86
+Test accuracy: 0.8670770183024853
