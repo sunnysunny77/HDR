@@ -65,18 +65,8 @@ test_ds = (
 
 inputs = layers.Input(shape=(28, 28, 1))
 
-x = layers.Conv2D(16, 3, strides=1, padding="same")(inputs)
+x = layers.Conv2D(32, 3, strides=1, padding="same")(inputs)
 
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(16, 3, strides=2, padding="same")(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(16, 3, strides=1, padding="same")(x)
-
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(32, 3, strides=2, padding="same")(x)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 x = layers.Conv2D(32, 3, strides=1, padding="same")(x)
@@ -87,10 +77,16 @@ x = layers.Conv2D(64, 3, strides=2, padding="same")(x)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 x = layers.Conv2D(64, 3, strides=1, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(64, 3, strides=1, padding="same")(x)
 
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 x = layers.Conv2D(128, 3, strides=2, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(128, 3, strides=1, padding="same")(x)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 x = layers.Conv2D(128, 3, strides=1, padding="same")(x)
@@ -145,4 +141,4 @@ predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
-Test accuracy: 0.8670770183024853
+Test accuracy: 0.8724757786508257
