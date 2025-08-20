@@ -8,7 +8,6 @@ from sklearn.metrics import accuracy_score
 
 BATCH_SIZE = 512
 NUM_CLASSES = 62
-EPOCHS = 20
 
 policy = tf.keras.mixed_precision.Policy("mixed_float16")
 tf.keras.mixed_precision.set_global_policy(policy)
