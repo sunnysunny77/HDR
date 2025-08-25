@@ -6,12 +6,11 @@ from tensorflow.keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
+tf.config.optimizer.set_jit(True)
+
 BATCH_SIZE = 512
 NUM_CLASSES = 62
-
-policy = tf.keras.mixed_precision.Policy("mixed_float16")
-tf.keras.mixed_precision.set_global_policy(policy)
-tf.config.optimizer.set_jit(True)
 
 def fix_orientation(images):
     return np.flip(np.rot90(images, k=3, axes=(1, 2)), axis=2)
@@ -19,17 +18,19 @@ def fix_orientation(images):
 df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
 df_test = pd.read_csv("./emnist-byclass-test.csv", header=None)
 
-X = df_train.drop(columns=[0]).to_numpy().reshape(-1, 28, 28, 1)
-y = df_train[0].to_numpy()
-
-X_test = df_test.drop(columns=[0]).to_numpy().reshape(-1, 28, 28, 1)
+X_train = df_train.drop(columns=[0]).to_numpy()
+y_train = df_train[0].to_numpy()
+X_test = df_test.drop(columns=[0]).to_numpy()
 y_test = df_test[0].to_numpy()
 
-X = fix_orientation(X).astype(np.float32) / 255.0
+X_train = X_train.reshape(-1, 28, 28, 1)
+X_test = X_test.reshape(-1, 28, 28, 1)
+
+X_train = fix_orientation(X_train).astype(np.float32) / 255.0
 X_test = fix_orientation(X_test).astype(np.float32) / 255.0
 
 X_train, X_val, y_train, y_val = train_test_split(
-    X, y, test_size=0.1, random_state=42, stratify=y
+    X_train, y_train, test_size=0.1, random_state=42, stratify=y_train
 )
 
 y_train = to_categorical(y_train, num_classes=NUM_CLASSES)
@@ -37,14 +38,15 @@ y_val = to_categorical(y_val, num_classes=NUM_CLASSES)
 y_test = to_categorical(y_test, num_classes=NUM_CLASSES)
 
 data_augmentation = tf.keras.Sequential([
-    layers.RandomRotation(0.05),
-    layers.RandomTranslation(0.05, 0.05),
-    layers.RandomZoom(0.05),
-    layers.RandomContrast(0.05),
-    layers.GaussianNoise(0.05)
+    layers.RandomRotation(0.02),           
+    layers.RandomTranslation(0.02, 0.02),        
+    layers.RandomZoom(0.1, 0.1),
+    layers.RandomShear(0.02),
+    layers.RandomContrast(0.1),
+    layers.GaussianNoise(0.03),
 ])
 
-train_ds = (
+train = (
     tf.data.Dataset.from_tensor_slices((X_train, y_train))
     .shuffle(65536)
     .batch(BATCH_SIZE)
@@ -52,20 +54,20 @@ train_ds = (
     .prefetch(tf.data.AUTOTUNE)
 )
 
-val_ds = (
+val = (
     tf.data.Dataset.from_tensor_slices((X_val, y_val))
     .batch(BATCH_SIZE)
     .prefetch(tf.data.AUTOTUNE)
 )
 
-test_ds = (
+test = (
     tf.data.Dataset.from_tensor_slices((X_test, y_test))
     .batch(BATCH_SIZE)
 )
 
 inputs = layers.Input(shape=(28, 28, 1))
 
-x = layers.Conv2D(32, 3, strides=1, padding="same")(inputs)
+x = layers.Conv2D(16, 3, strides=1, padding="same")(inputs)
 
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
@@ -73,7 +75,19 @@ x = layers.Conv2D(32, 3, strides=1, padding="same")(x)
 
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+x = layers.Conv2D(32, 3, strides=2, padding="same")(x)
+x = layers.Dropout(0.05)(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(32, 3, strides=1, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(32, 3, strides=1, padding="same")(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
 x = layers.Conv2D(64, 3, strides=2, padding="same")(x)
+x = layers.Dropout(0.05)(x)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 x = layers.Conv2D(64, 3, strides=1, padding="same")(x)
@@ -84,41 +98,30 @@ x = layers.Conv2D(64, 3, strides=1, padding="same")(x)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 x = layers.Conv2D(128, 3, strides=2, padding="same")(x)
+x = layers.Dropout(0.05)(x)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 x = layers.Conv2D(128, 3, strides=1, padding="same")(x)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 x = layers.Conv2D(128, 3, strides=1, padding="same")(x)
-
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(NUM_CLASSES, 1, padding="same")(x)
 
 x = layers.GlobalAveragePooling2D()(x)
 
-x = layers.Dropout(0.15)(x)
+x = layers.Dropout(0.05)(x)
 
-outputs = layers.Activation("softmax", dtype="float32")(x)
+x = layers.ReLU()(x)
+x = layers.Dense(128)(x)
+
+x = layers.Dropout(0.1)(x)
+
+outputs = layers.Dense(NUM_CLASSES, activation="softmax")(x)
 
 model = models.Model(inputs, outputs)
 
 lr = 1e-3
 
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(
-        learning_rate=lr, weight_decay=1e-4
-    ),
-    loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.05),
-    metrics=["accuracy"]
-)
-
 callbacks = [
-    tf.keras.callbacks.EarlyStopping(
-        monitor="val_loss",
-        patience=5,
-        restore_best_weights=True
-    ),
     tf.keras.callbacks.ReduceLROnPlateau(
         monitor="val_loss",
         factor=0.5,
@@ -128,17 +131,25 @@ callbacks = [
     )
 ]
 
-model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=50,
-    verbose=2,
-    callbacks=callbacks,
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(
+        learning_rate=lr, weight_decay=1e-4
+    ),
+    loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.05),
+    metrics=["accuracy"]
 )
 
-predict = model.predict(test_ds)
+model.fit(
+    train,      
+    validation_data=val,
+    epochs=50,
+    verbose=2,
+    callbacks=callbacks
+)
+
+predict = model.predict(test)
 predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
-Test accuracy: 0.8724757786508257
+Test accuracy: 0.874530402413968
