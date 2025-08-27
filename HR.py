@@ -38,11 +38,12 @@ y_val = to_categorical(y_val, num_classes=NUM_CLASSES)
 y_test = to_categorical(y_test, num_classes=NUM_CLASSES)
 
 data_augmentation = tf.keras.Sequential([
-    layers.RandomRotation(0.02),           
-    layers.RandomTranslation(0.02, 0.02),        
-    layers.RandomZoom(0.1, 0.1),
+    layers.RandomRotation(0.02),
+    layers.RandomTranslation(0.02, 0.02),
+    layers.RandomZoom(0.02, 0.02),
     layers.RandomShear(0.02),
-    layers.RandomContrast(0.1),
+    layers.RandomContrast(0.03),
+    layers.Lambda(lambda x: tf.image.random_brightness(x, max_delta=0.03)),
     layers.GaussianNoise(0.03),
 ])
 
@@ -67,53 +68,75 @@ test = (
 
 inputs = layers.Input(shape=(28, 28, 1))
 
-x = layers.Conv2D(16, 3, strides=1, padding="same")(inputs)
+x = layers.Conv2D(16, 3, strides=1, padding="same", use_bias=False)(inputs)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
 
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
-x = layers.Conv2D(32, 3, strides=1, padding="same")(x)
+x = layers.Conv2D(32, 3, strides=1, padding="same", use_bias=False)(x)
 
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
-x = layers.Conv2D(32, 3, strides=2, padding="same")(x)
-x = layers.Dropout(0.05)(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(32, 3, strides=1, padding="same")(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(32, 3, strides=1, padding="same")(x)
+x = layers.Conv2D(32, 3, strides=2, padding="same", use_bias=False)(x)
+x = layers.SpatialDropout2D(0.05)(x)
 
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
-x = layers.Conv2D(64, 3, strides=2, padding="same")(x)
-x = layers.Dropout(0.05)(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(64, 3, strides=1, padding="same")(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(64, 3, strides=1, padding="same")(x)
+x = layers.Conv2D(32, 3, strides=1, padding="same", use_bias=False)(x)
 
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
-x = layers.Conv2D(128, 3, strides=2, padding="same")(x)
-x = layers.Dropout(0.05)(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(128, 3, strides=1, padding="same")(x)
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(128, 3, strides=1, padding="same")(x)
+x = layers.Conv2D(32, 3, strides=1, padding="same", use_bias=False)(x)
 
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(64, 3, strides=2, padding="same", use_bias=False)(x)
+x = layers.SpatialDropout2D(0.05)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(64, 3, strides=1, padding="same", use_bias=False)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(64, 3, strides=1, padding="same", use_bias=False)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(128, 3, strides=2, padding="same", use_bias=False)(x)
+x = layers.SpatialDropout2D(0.1)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(128, 3, strides=1, padding="same", use_bias=False)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(128, 3, strides=1, padding="same", use_bias=False)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(256, 3, strides=2, padding="same", use_bias=False)(x)
+x = layers.SpatialDropout2D(0.1)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(256, 3, strides=1, padding="same", use_bias=False)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
+x = layers.Conv2D(256, 3, strides=1, padding="same", use_bias=False)(x)
+
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
 x = layers.GlobalAveragePooling2D()(x)
 
-x = layers.Dropout(0.05)(x)
-
+x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
-x = layers.Dense(128)(x)
+x = layers.Dense(128, use_bias=False)(x)
 
-x = layers.Dropout(0.1)(x)
+x = layers.Dropout(0.2)(x)
 
 outputs = layers.Dense(NUM_CLASSES, activation="softmax")(x)
 
@@ -135,7 +158,7 @@ model.compile(
     optimizer=tf.keras.optimizers.Adam(
         learning_rate=lr, weight_decay=1e-4
     ),
-    loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.05),
+    loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.01),
     metrics=["accuracy"]
 )
 
@@ -152,4 +175,4 @@ predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
-Test accuracy: 0.874530402413968
+Test accuracy: 0.876954686519433
