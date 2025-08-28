@@ -175,4 +175,4 @@ predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
-Test accuracy: 0.8784677148973118
+Test accuracy: 0.8785966661795174
