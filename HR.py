@@ -5,18 +5,15 @@ from tensorflow.keras.losses import CategoricalFocalCrossentropy
 from tensorflow.keras import layers, models
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import AdamW
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.data import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
-tf.keras.mixed_precision.set_global_policy("mixed_float16")
-tf.config.optimizer.set_jit(True)
-
 BATCH_SIZE = 512
 NUM_CLASSES = 62
-
+    
 df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
 df_test = pd.read_csv("./emnist-byclass-test.csv", header=None)
 
@@ -43,13 +40,10 @@ y_val = to_categorical(y_val, num_classes=NUM_CLASSES).astype(np.float32)
 y_test = to_categorical(y_test, num_classes=NUM_CLASSES).astype(np.float32)
 
 augmentation = Sequential([
-    layers.RandomRotation(0.02),
-    layers.RandomTranslation(0.02, 0.02),
-    layers.RandomZoom(0.02, 0.02),
-    layers.RandomShear(0.02),
-    layers.RandomContrast(0.02),
-    layers.Lambda(lambda x: tf.image.random_brightness(x, max_delta=0.02)),
-    layers.GaussianNoise(0.02),
+    layers.RandomRotation(0.05),   
+    layers.RandomTranslation(0.05, 0.05), 
+    layers.RandomZoom(0.05),   
+    layers.RandomContrast(0.05)
 ])
 
 def prepare_augmentation(x, y):
@@ -58,7 +52,7 @@ def prepare_augmentation(x, y):
 
 train = ( 
     Dataset.from_tensor_slices((X_train, y_train)) 
-    .shuffle(65536) 
+    .shuffle(65536)
     .batch(BATCH_SIZE) 
     .map(prepare_augmentation, num_parallel_calls=tf.data.AUTOTUNE)
     .prefetch(tf.data.AUTOTUNE)
@@ -126,19 +120,6 @@ x = layers.Conv2D(128, 3, strides=1, padding="same", use_bias=False)(x)
 
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
-x = layers.Conv2D(256, 3, strides=2, padding="same", use_bias=False)(x)
-x = layers.SpatialDropout2D(0.15)(x)
-
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(256, 3, strides=1, padding="same", use_bias=False)(x)
-
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
-x = layers.Conv2D(256, 3, strides=1, padding="same", use_bias=False)(x)
-
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
 x = layers.GlobalAveragePooling2D()(x)
 
 x = layers.BatchNormalization()(x)
@@ -152,7 +133,7 @@ outputs = layers.Dense(NUM_CLASSES, activation="softmax", dtype="float32")(x)
 model = models.Model(inputs, outputs)
 
 model.compile(
-    optimizer=Adam(learning_rate=1e-3, weight_decay=1e-4),
+    optimizer=AdamW(learning_rate=1e-3, weight_decay=1e-4),
     loss = CategoricalFocalCrossentropy(gamma=2.0, from_logits=False, label_smoothing=0.1),
     metrics=["accuracy"]
 )
@@ -167,4 +148,3 @@ predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
-87
