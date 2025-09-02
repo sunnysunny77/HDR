@@ -2,12 +2,8 @@ import * as tf from "@tensorflow/tfjs";
 
 const labels = [
   "0","1","2","3","4","5","6","7","8","9",
-  "A","B","C","D","E","F","G","H","I","J",
-  "K","L","M","N","O","P","Q","R","S","T",
-  "U","V","W","X","Y","Z",
 ];
 
-const filter = ["0","O","5","S"];
 
 let model;
 
@@ -28,10 +24,7 @@ const predictBtn = document.getElementById("predictBtn");
 const message = document.getElementById("message");
 const output = document.getElementById("output");
 
-const getRandomLabel = () => {
-  const allowed = labels.filter(l => !filter.includes(l));
-  return allowed[Math.floor(Math.random() * allowed.length)];
-};
+const getRandomLabel = () => labels[Math.floor(Math.random() * labels.length)];
 
 const setRandomLabels = () => {
   currentLabels = [getRandomLabel(), getRandomLabel(), getRandomLabel(), getRandomLabel()];

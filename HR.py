@@ -15,32 +15,15 @@ tf.keras.mixed_precision.set_global_policy("mixed_float16")
 tf.config.optimizer.set_jit(True)
 
 BATCH_SIZE = 512
-NUM_CLASSES = 36
+NUM_CLASSES = 10
     
-df_digits_train = pd.read_csv("./emnist-digits-train.csv", header=None)
-df_digits_test = pd.read_csv("./emnist-digits-test.csv", header=None)
-df_letters_train = pd.read_csv("./emnist-letters-train.csv", header=None)
-df_letters_test = pd.read_csv("./emnist-letters-test.csv", header=None)
+df_train = pd.read_csv("./emnist-digits-train.csv", header=None)
+df_test = pd.read_csv("./emnist-digits-test.csv", header=None)
 
-X_digits_train = df_digits_train.drop(columns=[0]).to_numpy()
-y_digits_train = df_digits_train[0].to_numpy()
-
-X_digits_test = df_digits_test.drop(columns=[0]).to_numpy()
-y_digits_test = df_digits_test[0].to_numpy()
-
-X_letters_train = df_letters_train.drop(columns=[0]).to_numpy()
-y_letters_train = df_letters_train[0].to_numpy() - 1
-y_letters_train += 10
-
-X_letters_test = df_letters_test.drop(columns=[0]).to_numpy()
-y_letters_test = df_letters_test[0].to_numpy() - 1
-y_letters_test += 10
-
-X_train = np.concatenate([X_digits_train, X_letters_train], axis=0)
-y_train = np.concatenate([y_digits_train, y_letters_train], axis=0)
-
-X_test = np.concatenate([X_digits_test, X_letters_test], axis=0)
-y_test = np.concatenate([y_digits_test, y_letters_test], axis=0)
+X_train = df_train.drop(columns=[0]).to_numpy()
+y_train = df_train[0].to_numpy()
+X_test = df_test.drop(columns=[0]).to_numpy()
+y_test = df_test[0].to_numpy()
 
 X_train = X_train.reshape(-1, 28, 28, 1)
 X_test = X_test.reshape(-1, 28, 28, 1)
@@ -70,10 +53,10 @@ y_val = y_val.astype(np.float32)
 y_test = y_test.astype(np.float32)
 
 augmentation = Sequential([
-    layers.RandomRotation(0.1),   
-    layers.RandomTranslation(0.1, 0.1), 
-    layers.RandomZoom(0.1),   
-    layers.RandomContrast(0.1)
+    layers.RandomRotation(0.05),   
+    layers.RandomTranslation(0.05, 0.05), 
+    layers.RandomZoom(0.05),   
+    layers.RandomContrast(0.05)
 ])
 
 def prepare_augmentation(x, y):
@@ -98,7 +81,6 @@ test = (
     Dataset.from_tensor_slices((X_test, y_test))
     .batch(BATCH_SIZE)
 )
-
 inputs = layers.Input(shape=(28, 28, 1))
 
 x = layers.Conv2D(16, 3, strides=1, padding="same", use_bias=False)(inputs)
@@ -178,3 +160,4 @@ predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
+Test accuracy: 0.997725
