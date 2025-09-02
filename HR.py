@@ -11,16 +11,36 @@ from tensorflow.data import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
-BATCH_SIZE = 512
-NUM_CLASSES = 47
-    
-df_train = pd.read_csv("./emnist-bymerge-train.csv", header=None)
-df_test = pd.read_csv("./emnist-bymerge-test.csv", header=None)
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
+tf.config.optimizer.set_jit(True)
 
-X_train = df_train.drop(columns=[0]).to_numpy()
-y_train = df_train[0].to_numpy()
-X_test = df_test.drop(columns=[0]).to_numpy()
-y_test = df_test[0].to_numpy()
+BATCH_SIZE = 512
+NUM_CLASSES = 36
+    
+df_digits_train = pd.read_csv("./emnist-digits-train.csv", header=None)
+df_digits_test = pd.read_csv("./emnist-digits-test.csv", header=None)
+df_letters_train = pd.read_csv("./emnist-letters-train.csv", header=None)
+df_letters_test = pd.read_csv("./emnist-letters-test.csv", header=None)
+
+X_digits_train = df_digits_train.drop(columns=[0]).to_numpy()
+y_digits_train = df_digits_train[0].to_numpy()
+
+X_digits_test = df_digits_test.drop(columns=[0]).to_numpy()
+y_digits_test = df_digits_test[0].to_numpy()
+
+X_letters_train = df_letters_train.drop(columns=[0]).to_numpy()
+y_letters_train = df_letters_train[0].to_numpy() - 1
+y_letters_train += 10
+
+X_letters_test = df_letters_test.drop(columns=[0]).to_numpy()
+y_letters_test = df_letters_test[0].to_numpy() - 1
+y_letters_test += 10
+
+X_train = np.concatenate([X_digits_train, X_letters_train], axis=0)
+y_train = np.concatenate([y_digits_train, y_letters_train], axis=0)
+
+X_test = np.concatenate([X_digits_test, X_letters_test], axis=0)
+y_test = np.concatenate([y_digits_test, y_letters_test], axis=0)
 
 X_train = X_train.reshape(-1, 28, 28, 1)
 X_test = X_test.reshape(-1, 28, 28, 1)
@@ -28,22 +48,32 @@ X_test = X_test.reshape(-1, 28, 28, 1)
 def fix_orientation(images):
     return np.flip(np.rot90(images, k=3, axes=(1, 2)), axis=2)
 
-X_train = fix_orientation(X_train).astype(np.float32) / 255.0
-X_test = fix_orientation(X_test).astype(np.float32) / 255.0
+X_train = fix_orientation(X_train)
+X_test = fix_orientation(X_test)
+
+X_train = X_train.astype(np.float32)
+X_test = X_test.astype(np.float32)
+
+X_train = X_train / 255.0
+X_test = X_test / 255.0
 
 X_train, X_val, y_train, y_val = train_test_split(
     X_train, y_train, test_size=0.1, random_state=42, stratify=y_train
 )
 
-y_train = to_categorical(y_train, num_classes=NUM_CLASSES).astype(np.float32)
-y_val = to_categorical(y_val, num_classes=NUM_CLASSES).astype(np.float32)
-y_test = to_categorical(y_test, num_classes=NUM_CLASSES).astype(np.float32)
+y_train = to_categorical(y_train, num_classes=NUM_CLASSES)
+y_val = to_categorical(y_val, num_classes=NUM_CLASSES)
+y_test = to_categorical(y_test, num_classes=NUM_CLASSES)
+
+y_train = y_train.astype(np.float32)
+y_val = y_val.astype(np.float32)
+y_test = y_test.astype(np.float32)
 
 augmentation = Sequential([
-    layers.RandomRotation(0.05),   
-    layers.RandomTranslation(0.05, 0.05), 
-    layers.RandomZoom(0.05),   
-    layers.RandomContrast(0.05)
+    layers.RandomRotation(0.1),   
+    layers.RandomTranslation(0.1, 0.1), 
+    layers.RandomZoom(0.1),   
+    layers.RandomContrast(0.1)
 ])
 
 def prepare_augmentation(x, y):
@@ -148,4 +178,3 @@ predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
-91

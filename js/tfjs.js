@@ -5,31 +5,28 @@ const labels = [
   "A","B","C","D","E","F","G","H","I","J",
   "K","L","M","N","O","P","Q","R","S","T",
   "U","V","W","X","Y","Z",
-  "a","b","d","e","f","g","h","n","q","r","t"
 ];
-const filter = ["0","O","a","b","d","e","f","g","h","n","q","r","t"];
+
+const filter = ["0","O"];
 
 let model;
+
+let drawing = [false, false, false, false];
+
+let currentLabels = [];
+
 const SIZE = 140;
+
 const canvases = [
   document.getElementById("canvas-0"),
   document.getElementById("canvas-1"),
   document.getElementById("canvas-2"),
-  document.getElementById("canvas-3")
+  document.getElementById("canvas-3"),
 ];
-const contexts = canvases.map(c => {
-  c.width = SIZE;
-  c.height = SIZE;
-  return c.getContext("2d");
-});
-
 const clearBtn = document.getElementById("clearBtn");
 const predictBtn = document.getElementById("predictBtn");
 const message = document.getElementById("message");
 const output = document.getElementById("output");
-
-let drawing = [false, false, false, false];
-let currentLabels = [];
 
 const getRandomLabel = () => {
   const allowed = labels.filter(l => !filter.includes(l));
@@ -38,11 +35,14 @@ const getRandomLabel = () => {
 
 const setRandomLabels = () => {
   currentLabels = [getRandomLabel(), getRandomLabel(), getRandomLabel(), getRandomLabel()];
-  output.innerHTML = `
-    <b>${currentLabels[0]}</b> | <b>${currentLabels[1]}</b><br>
-    <b>${currentLabels[2]}</b> | <b>${currentLabels[3]}</b>
-  `;
+  output.innerHTML = currentLabels.map(label => `<div>${label}</div>`).join("");
 };
+
+const contexts = canvases.map(c => {
+  c.width = SIZE;
+  c.height = SIZE;
+  return c.getContext("2d");
+});
 
 const clear = (text, reset) => {
   contexts.forEach(ctx => {
@@ -53,23 +53,91 @@ const clear = (text, reset) => {
   message.innerText = text;
 };
 
-export const tfjs = async () => {
-  output.innerText = "Loading model...";
-  try {
-    await tf.setBackend("webgl");
-    await tf.ready();
-  } catch {
-    await tf.setBackend("cpu");
-    await tf.ready();
+clearBtn.addEventListener("click", () => {
+  clear("Draw the required characters", true);
+});
+
+const processCanvas = async (canvas) => {
+  const canvasTensor = tf.browser.fromPixels(canvas).toFloat().div(255);
+  const brightness = canvasTensor.mean(2);
+  const mask = brightness.greater(0.1);
+  const coords = await tf.whereAsync(mask);
+
+  if (coords.shape[0] === 0) {
+    coords.dispose();
+    mask.dispose();
+    canvasTensor.dispose();
+    return null;
   }
-  try {
-    model = await tf.loadGraphModel("tfjs_model/model.json");
-    clear("Draw the required characters", true);
-  } catch (error) {
-    output.innerText = "Failed to load model.";
-    console.error("Model loading error:", error);
-  }
+
+  const coordsData = await coords.array();
+  const ys = coordsData.map(([y]) => y);
+  const xs = coordsData.map(([, x]) => x);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+
+  const cropped = canvasTensor.slice(
+    [minY, minX, 0],
+    [maxY - minY + 1, maxX - minX + 1, 3]
+  );
+
+  const maxSide = Math.max(cropped.shape[0], cropped.shape[1]);
+  const scale = 20 / maxSide;
+  const newH = Math.round(cropped.shape[0] * scale);
+  const newW = Math.round(cropped.shape[1] * scale);
+
+  const resized = tf.image.resizeBilinear(cropped, [newH, newW]);
+  const topPad = Math.floor((28 - newH) / 2);
+  const leftPad = Math.floor((28 - newW) / 2);
+
+  const padded = tf.pad(
+    resized,
+    [[topPad, 28 - newH - topPad], [leftPad, 28 - newW - leftPad], [0, 0]]
+  );
+
+  const grey = padded.mean(2);
+  const input = grey.expandDims(0).expandDims(-1);
+
+  const prediction = model.predict(input);
+  const values = await prediction.data();
+  const maxIndex = values.indexOf(Math.max(...values));
+
+  input.dispose();
+  prediction.dispose();
+  cropped.dispose();
+  resized.dispose();
+  padded.dispose();
+  grey.dispose();
+  coords.dispose();
+  mask.dispose();
+  canvasTensor.dispose();
+
+  return maxIndex;
 };
+
+predictBtn.addEventListener("click", async () => {
+  if (!model) {
+    alert("Model not loaded yet.");
+    return;
+  }
+
+  predictBtn.disabled = true;
+  message.innerText = "Checking...";
+  await tf.nextFrame();
+
+  let correct = true;
+
+  for (let i = 0; i < 4; i++) {
+    const maxIndex = await processCanvas(canvases[i]);
+    if (maxIndex === null || currentLabels[i] !== labels[maxIndex]) {
+      correct = false;
+      break;
+    }
+  }
+
+  correct ? (message.innerText = "Correct") : clear("Incorrect", false);
+  predictBtn.disabled = false;
+});
 
 const getCanvasCoords = (e, canvas) => {
   const rect = canvas.getBoundingClientRect();
@@ -109,85 +177,20 @@ canvases.forEach((canvas, i) => {
   );
 });
 
-predictBtn.addEventListener("click", async () => {
-  if (!model) {
-    alert("Model not loaded yet.");
-    return;
+export const tfjs = async () => {
+  message.innerText = "Loading model...";
+  try {
+    await tf.setBackend("webgl");
+    await tf.ready();
+  } catch {
+    await tf.setBackend("cpu");
+    await tf.ready();
   }
-
-  predictBtn.disabled = true;
-  message.innerText = "Checking...";
-  await tf.nextFrame();
-
-  let correct = true;
-
-  for (let i = 0; i < 4; i++) {
-    const canvasTensor = tf.browser.fromPixels(canvases[i]).toFloat().div(255);
-    const brightness = canvasTensor.mean(2);
-    const mask = brightness.greater(0.1);
-    const coords = await tf.whereAsync(mask);
-
-    if (coords.shape[0] === 0) {
-      coords.dispose();
-      mask.dispose();
-      canvasTensor.dispose();
-      correct = false;
-      break;
-    }
-
-    const coordsData = await coords.array();
-    const ys = coordsData.map(([y]) => y);
-    const xs = coordsData.map(([, x]) => x);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-
-    const cropped = canvasTensor.slice(
-      [minY, minX, 0],
-      [maxY - minY + 1, maxX - minX + 1, 3]
-    );
-
-    const maxSide = Math.max(cropped.shape[0], cropped.shape[1]);
-    const scale = 20 / maxSide;
-    const newH = Math.round(cropped.shape[0] * scale);
-    const newW = Math.round(cropped.shape[1] * scale);
-
-    const resized = tf.image.resizeBilinear(cropped, [newH, newW]);
-    const topPad = Math.floor((28 - newH) / 2);
-    const leftPad = Math.floor((28 - newW) / 2);
-
-    const padded = tf.pad(
-      resized,
-      [[topPad, 28 - newH - topPad], [leftPad, 28 - newW - leftPad], [0, 0]]
-    );
-
-    const grey = padded.mean(2);
-    const input = grey.expandDims(0).expandDims(-1);
-
-    const prediction = model.predict(input);
-    const values = await prediction.data();
-    const maxIndex = values.indexOf(Math.max(...values));
-
-    input.dispose();
-    prediction.dispose();
-    cropped.dispose();
-    resized.dispose();
-    padded.dispose();
-    grey.dispose();
-    coords.dispose();
-    mask.dispose();
-    canvasTensor.dispose();
-
-    if (currentLabels[i] !== labels[maxIndex]) {
-      correct = false;
-      break;
-    }
+  try {
+    model = await tf.loadGraphModel("tfjs_model/model.json");
+    clear("Draw the required characters", true);
+  } catch (error) {
+    message.innerText = "Failed to load model.";
+    console.error("Model loading error:", error);
   }
-
-  correct ? (message.innerText = "Correct") : clear("Incorrect", false);
-  predictBtn.disabled = false;
-});
-
-
-clearBtn.addEventListener("click", () => {
-  clear("Draw the required characters", true);
-});
+};

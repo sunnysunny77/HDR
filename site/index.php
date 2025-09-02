@@ -35,15 +35,18 @@
 
     </div>
 
-    <div id="output">
+    <div id="output" class="label-grid">
 
-      Loading model...
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
 
     </div>
 
     <div id="message">
 
-      Draw the required character
+      Loading model...
 
     </div>
 
