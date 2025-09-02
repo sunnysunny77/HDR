@@ -7,7 +7,7 @@ const labels = [
   "U","V","W","X","Y","Z",
 ];
 
-const filter = ["0","O","5","S","6","G","8","B"];
+const filter = ["0","O","5","S"];
 
 let model;
 
@@ -58,52 +58,56 @@ clearBtn.addEventListener("click", () => {
 });
 
 const processCanvas = async (canvas) => {
-  const img = tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
+  const img = tf.browser.fromPixels(canvas, 3).toFloat().div(255.0);
 
   const mask = img.greater(0.1);
   const coords = await tf.whereAsync(mask);
-  mask.dispose();
 
   if (coords.shape[0] === 0) {
     img.dispose();
+    mask.dispose();
+    coords.dispose();
     return null;
   }
 
-  const min = coords.min(0);
-  const max = coords.max(0);
-  const [minY, minX] = (await min.data());
-  const [maxY, maxX] = (await max.data());
-  min.dispose();
-  max.dispose();
+  const ys = coords.slice([0, 0], [-1, 1]).squeeze();
+  const xs = coords.slice([0, 1], [-1, 1]).squeeze();
 
-  const cropped = img.slice(
-    [minY, minX, 0],
-    [maxY - minY + 1, maxX - minX + 1, 1]
-  );
+  const minY = ys.min().arraySync();
+  const maxY = ys.max().arraySync();
+  const minX = xs.min().arraySync();
+  const maxX = xs.max().arraySync();
 
-  const [h, w] = cropped.shape.slice(0, 2);
-  const scale = Math.min(20 / w, 20 / h);
-  const newW = Math.round(w * scale);
-  const newH = Math.round(h * scale);
-  const resized = cropped.resizeBilinear([newH, newW]);
+  const width = maxX - minX + 1;
+  const height = maxY - minY + 1;
 
-  const top = Math.floor((28 - newH) / 2);
-  const left = Math.floor((28 - newW) / 2);
-  const bottom = 28 - newH - top;
-  const right = 28 - newW - left;
-  const padded = resized.pad([[top, bottom], [left, right], [0, 0]]);
+  let imgTensor = img.mean(2).expandDims(2);
+  img.dispose();
+  mask.dispose();
+  coords.dispose();
+  ys.dispose();
+  xs.dispose();
 
-  const input = padded.expandDims(0);
-  const prediction = model.predict(input);
-  const values = await prediction.data();
-  const maxIndex = values.indexOf(Math.max(...values));
+  imgTensor = imgTensor.slice([minY, minX, 0], [height, width, 1]);
+
+  const scale = 20 / Math.max(height, width);
+  const newHeight = Math.round(height * scale);
+  const newWidth = Math.round(width * scale);
+
+  imgTensor = imgTensor.resizeBilinear([newHeight, newWidth]);
+
+  const top = Math.floor((28 - newHeight) / 2);
+  const bottom = 28 - newHeight - top;
+  const left = Math.floor((28 - newWidth) / 2);
+  const right = 28 - newWidth - left;
+
+  imgTensor = imgTensor.pad([[top, bottom], [left, right], [0, 0]]).expandDims(0);
+
+  const prediction = model.predict(imgTensor);
+  const maxIndex = prediction.argMax(-1).dataSync()[0];
 
   prediction.dispose();
-  img.dispose();
-  cropped.dispose();
-  resized.dispose();
-  padded.dispose();
-  input.dispose();
+  imgTensor.dispose();
 
   return maxIndex;
 };
@@ -149,7 +153,7 @@ canvases.forEach((canvas, i) => {
       drawing[i] = true;
       const { x, y } = getCanvasCoords(e, canvas);
       ctx.strokeStyle = "white";
-      ctx.lineWidth = Math.max(10, canvas.width / 17);
+      ctx.lineWidth = Math.max(10, canvas.width / 16);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.beginPath();
