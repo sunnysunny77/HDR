@@ -12,10 +12,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 BATCH_SIZE = 512
-NUM_CLASSES = 62
+NUM_CLASSES = 47
     
-df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
-df_test = pd.read_csv("./emnist-byclass-test.csv", header=None)
+df_train = pd.read_csv("./emnist-bymerge-train.csv", header=None)
+df_test = pd.read_csv("./emnist-bymerge-test.csv", header=None)
 
 X_train = df_train.drop(columns=[0]).to_numpy()
 y_train = df_train[0].to_numpy()
@@ -148,3 +148,4 @@ predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
+91

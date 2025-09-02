@@ -10,6 +10,7 @@ const labels = [
 
 let model;
 let drawing = false;
+let label = "";
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -22,10 +23,27 @@ ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
 const clearBtn = document.getElementById("clearBtn");
 const predictBtn = document.getElementById("predictBtn");
-const predictionDiv = document.getElementById("prediction");
+const output = document.getElementById("output");
+const message = document.getElementById("message");
+
+const setRandomLabel = () => {
+  const randomIndex = Math.floor(Math.random() * labels.length);
+  const randomLabel = labels[randomIndex];
+  label = randomLabel;
+  output.innerHTML = `
+    <b>${randomLabel}</b>
+  `;
+};
+
+const clear = (text) => {
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  message.innerText = text;
+  setRandomLabel();
+};
 
 export const tfjs = async () => {
-  predictionDiv.innerText = "Loading model...";
+  output.innerText = "Loading model...";
   try {
     await tf.setBackend("webgl");
     await tf.ready();
@@ -35,10 +53,10 @@ export const tfjs = async () => {
   }
   try {
     model = await tf.loadGraphModel("tfjs_model/model.json");
-    predictionDiv.innerText = "Model ready. Draw and click Predict.";
+    setRandomLabel();
     console.log("Model loaded.");
   } catch (error) {
-    predictionDiv.innerText = "Failed to load model.";
+    output.innerText = "Failed to load model.";
     console.error("Model loading error:", error);
   }
 };
@@ -50,7 +68,7 @@ predictBtn.addEventListener("click", async () => {
   }
 
   predictBtn.disabled = true;
-  predictionDiv.innerText = "Predicting...";
+  message.innerText = "Predicting...";
   await tf.nextFrame();
 
   try {
@@ -83,9 +101,14 @@ predictBtn.addEventListener("click", async () => {
 
     const prediction = model.predict(gray);
     const maxIndex = prediction.argMax(-1).dataSync()[0];
-    const maxVal = prediction.max(-1).dataSync()[0];
 
-    predictionDiv.innerText = `Prediction: ${labels[maxIndex]} (Confidence: ${maxVal.toFixed(4)})`;
+    if (label === labels[maxIndex]) {
+
+      message.innerText = "Correct";
+    } else {
+
+      clear("Incorrect");
+    };
 
     img.dispose();
     brightness.dispose();
@@ -97,22 +120,22 @@ predictBtn.addEventListener("click", async () => {
     gray.dispose();
     prediction.dispose();
 
-  } catch (error) {
-    predictionDiv.innerText = "Prediction failed.";
-    if (error.message !== "Empty canvas") console.error(error);
+  } catch {
+    message.innerText = "Draw the required character";
+    setRandomLabel();
   } finally {
     predictBtn.disabled = false;
   }
 });
 
-function getCanvasCoords(e) {
+const getCanvasCoords = (e) => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
   const x = (e.clientX - rect.left) * scaleX;
   const y = (e.clientY - rect.top) * scaleY;
   return { x, y };
-}
+};
 
 canvas.addEventListener("pointerdown", e => {
   if (["mouse", "pen", "touch"].includes(e.pointerType)) {
@@ -143,11 +166,4 @@ canvas.addEventListener("pointermove", e => {
   });
 });
 
-clearBtn.addEventListener("click", () => {
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  predictionDiv.innerHTML = `
-    <b>Predicted:</b> ? <br/>
-    <b>Confidence:</b> ?
-  `;
-});
+clearBtn.addEventListener("click", () => clear("Draw the required character"));

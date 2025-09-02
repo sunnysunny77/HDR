@@ -22,15 +22,21 @@
 
     <div class="buttons">
 
-      <button id="clearBtn">Clear</button>
+      <button id="clearBtn">Reset</button>
 
-      <button id="predictBtn">Predict</button>
+      <button id="predictBtn">Submit</button>
 
     </div>
 
-    <div id="prediction">
+    <div id="output">
 
       Loading model...
+
+    </div>
+
+    <div id="message">
+
+      Draw the required character
 
     </div>
 
