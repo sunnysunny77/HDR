@@ -7,7 +7,7 @@ const labels = [
   "U","V","W","X","Y","Z",
 ];
 
-const filter = ["0","O","5","S","6","G"];
+const filter = ["0","O","5","S","6","G","8","B"];
 
 let model;
 
