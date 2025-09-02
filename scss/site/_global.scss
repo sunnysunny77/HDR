@@ -45,19 +45,52 @@ h1 {
   gap: 1rem;
 }
 
-#canvas {
-  border: 2px solid #444;
-  background-color: black;
-  touch-action: none;
-  cursor: crosshair;
-  display: block;
-  image-rendering: pixelated;
-  user-select: none;
-  box-shadow: 0 0 8px #222;
-  width: 100%;
-  max-width: 280px;
-  height: auto;
+#canvas-wrapper {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 140px);
+  grid-template-rows: repeat(2, 140px);
+  width: 280px;
+  height: 280px;
+  background: black;
+
+  .quad {
+    border: none;
+    background: black;
+    touch-action: none;
+    cursor: crosshair;
+    image-rendering: pixelated;
+    width: 140px;
+    height: 140px;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, gray 2px, transparent 2px),
+      linear-gradient(to bottom, gray 2px, transparent 2px);
+    background-size: 140px 140px;
+    z-index: 2;
+  }
+
+   &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+    linear-gradient(to right, transparent 50%, gray 2px, transparent 50%),
+    linear-gradient(to bottom, transparent 50%, gray 2px, transparent 50%);
+    background-size: 100% 100%, 100% 100%;
+    border-right: 2px solid gray;
+    border-bottom: 2px solid gray;
+    z-index: 2;
+  }
 }
+
 
 .buttons {
   display: flex;

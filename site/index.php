@@ -18,7 +18,14 @@
 
     <h1>Handwritten recognition</h1>
 
-    <canvas id="canvas"></canvas>
+    <div id="canvas-wrapper">
+
+      <canvas class="quad" id="canvas-0"></canvas>
+      <canvas class="quad" id="canvas-1"></canvas>
+      <canvas class="quad" id="canvas-2"></canvas>
+      <canvas class="quad" id="canvas-3"></canvas>
+
+    </div>
 
     <div class="buttons">
 
