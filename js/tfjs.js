@@ -35,11 +35,11 @@ const setRandomLabel = () => {
   `;
 };
 
-const clear = (text) => {
+const clear = (text, bool) => {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   message.innerText = text;
-  setRandomLabel();
+  if (bool) setRandomLabel();
 };
 
 export const tfjs = async () => {
@@ -107,7 +107,7 @@ predictBtn.addEventListener("click", async () => {
       message.innerText = "Correct";
     } else {
 
-      clear("Incorrect");
+      clear("Incorrect", false);
     };
 
     img.dispose();
@@ -166,4 +166,4 @@ canvas.addEventListener("pointermove", e => {
   });
 });
 
-clearBtn.addEventListener("click", () => clear("Draw the required character"));
+clearBtn.addEventListener("click", () => clear("Draw the required character", true));
