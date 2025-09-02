@@ -8,6 +8,8 @@ const labels = [
   "a", "b", "d", "e", "f", "g", "h", "n", "q", "r", "t"
 ];
 
+const filter = ["0","a", "b", "d", "e", "f", "g", "h", "n", "q", "r", "t"];
+
 let model;
 let drawing = false;
 let label = "";
@@ -27,9 +29,10 @@ const output = document.getElementById("output");
 const message = document.getElementById("message");
 
 const setRandomLabel = () => {
-  const randomIndex = Math.floor(Math.random() * labels.length);
-  const randomLabel = labels[randomIndex];
-  label = randomLabel;
+  const allowedLabels = labels.filter(l => !filter.includes(l));
+  const randomIndex = Math.floor(Math.random() * allowedLabels.length);
+  const randomLabel = allowedLabels[randomIndex];
+  label = randomLabel
   output.innerHTML = `
     <b>${randomLabel}</b>
   `;
