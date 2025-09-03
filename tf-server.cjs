@@ -36,7 +36,7 @@ const classifyImages = async (images, providedLabels, labels) => {
       };
     })
   );
-}
+};
 
 const processImageNode = async (imageBuffer) => {
   let img = tf.node.decodeImage(imageBuffer, 3).toFloat().div(255.0);
