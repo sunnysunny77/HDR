@@ -1,8 +1,6 @@
 const tf = require("@tensorflow/tfjs-node");
 const express = require("express");
 const cors = require("cors");
-const fs = require("fs");
-const https = require("https");
 
 const tf_app = express();
 tf_app.use(cors());
@@ -110,12 +108,6 @@ tf_app.get("/labels", (req, res) => {
   res.json({ labels: currentLabels });
 });
 
-https.createServer(
-  {
-    key: fs.readFileSync("./certs/server.key"),
-    cert: fs.readFileSync("./certs/server.crt"),
-  },
-  tf_app
-).listen(port, () => {
-  console.log(`Server live: https://localhost:${port}`);
+tf_app.listen(port, () => {
+  console.log(`Server live: http://localhost:${port}`);
 });

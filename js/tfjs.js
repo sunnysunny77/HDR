@@ -2,7 +2,7 @@ let drawing = [false, false, false, false];
 
 const SIZE = 140;
 
-const host = "https://localhost:3001";
+const host = "http://localhost:3001";
 
 const canvases = Array.from(document.querySelectorAll(".quad"));
 const clearBtn = document.querySelector("#clearBtn");
