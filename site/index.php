@@ -20,10 +20,10 @@
 
     <div id="canvas-wrapper">
 
-      <canvas class="quad" id="canvas-0"></canvas>
-      <canvas class="quad" id="canvas-1"></canvas>
-      <canvas class="quad" id="canvas-2"></canvas>
-      <canvas class="quad" id="canvas-3"></canvas>
+      <canvas class="quad"></canvas>
+      <canvas class="quad"></canvas>
+      <canvas class="quad"></canvas>
+      <canvas class="quad"></canvas>
 
     </div>
 

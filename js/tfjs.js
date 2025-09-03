@@ -1,34 +1,12 @@
-import * as tf from "@tensorflow/tfjs";
-
-const labels = [
-  "0","1","2","3","4","5","6","7","8","9",
-];
-
-let model;
-
 let drawing = [false, false, false, false];
-
-let currentLabels = [];
 
 const SIZE = 140;
 
-const canvases = [
-  document.getElementById("canvas-0"),
-  document.getElementById("canvas-1"),
-  document.getElementById("canvas-2"),
-  document.getElementById("canvas-3"),
-];
-const clearBtn = document.getElementById("clearBtn");
-const predictBtn = document.getElementById("predictBtn");
-const message = document.getElementById("message");
-const output = document.getElementById("output");
-
-const getRandomLabel = () => labels[Math.floor(Math.random() * labels.length)];
-
-const setRandomLabels = () => {
-  currentLabels = [getRandomLabel(), getRandomLabel(), getRandomLabel(), getRandomLabel()];
-  output.innerHTML = currentLabels.map(label => `<div>${label}</div>`).join("");
-};
+const canvases = Array.from(document.querySelectorAll(".quad"));
+const clearBtn = document.querySelector("#clearBtn");
+const predictBtn = document.querySelector("#predictBtn");
+const message = document.querySelector("#message");
+const output = document.querySelector("#output");
 
 const contexts = canvases.map(c => {
   c.width = SIZE;
@@ -36,12 +14,24 @@ const contexts = canvases.map(c => {
   return c.getContext("2d");
 });
 
-const clear = (text, reset) => {
+const setRandomLabels = async () => {
+  try {
+    const res = await fetch("https://localhost:3001/labels");
+    if (!res.ok) throw new Error(res.statusText);
+    const data = await res.json();
+    output.innerHTML = data.labels.map(label => `<div>${label}</div>`).join("");
+  } catch (err) {
+    console.error(err);
+    message.innerText = "Error fetching labels";
+  }
+};
+
+const clear = async (text, reset) => {
   contexts.forEach(ctx => {
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, SIZE, SIZE);
   });
-  if (reset) setRandomLabels();
+  if (reset) await setRandomLabels();
   message.innerText = text;
 };
 
@@ -49,93 +39,46 @@ clearBtn.addEventListener("click", () => {
   clear("Draw the required characters", true);
 });
 
-const processCanvas = async (canvas) => {
-  const img = tf.browser.fromPixels(canvas, 3).toFloat().div(255.0);
-
-  const mask = img.greater(0.1);
-  const coords = await tf.whereAsync(mask);
-
-  if (coords.shape[0] === 0) {
-    img.dispose();
-    mask.dispose();
-    coords.dispose();
-    return null;
-  }
-
-  const ys = coords.slice([0, 0], [-1, 1]).squeeze();
-  const xs = coords.slice([0, 1], [-1, 1]).squeeze();
-
-  const minY = ys.min().arraySync();
-  const maxY = ys.max().arraySync();
-  const minX = xs.min().arraySync();
-  const maxX = xs.max().arraySync();
-
-  const width = maxX - minX + 1;
-  const height = maxY - minY + 1;
-
-  let imgTensor = img.mean(2).expandDims(2);
-  img.dispose();
-  mask.dispose();
-  coords.dispose();
-  ys.dispose();
-  xs.dispose();
-
-  imgTensor = imgTensor.slice([minY, minX, 0], [height, width, 1]);
-
-  const scale = 20 / Math.max(height, width);
-  const newHeight = Math.round(height * scale);
-  const newWidth = Math.round(width * scale);
-
-  imgTensor = imgTensor.resizeBilinear([newHeight, newWidth]);
-
-  const top = Math.floor((28 - newHeight) / 2);
-  const bottom = 28 - newHeight - top;
-  const left = Math.floor((28 - newWidth) / 2);
-  const right = 28 - newWidth - left;
-
-  imgTensor = imgTensor.pad([[top, bottom], [left, right], [0, 0]]).expandDims(0);
-
-  const prediction = model.predict(imgTensor);
-  const maxIndex = prediction.argMax(-1).dataSync()[0];
-
-  prediction.dispose();
-  imgTensor.dispose();
-
-  return maxIndex;
-};
-
 predictBtn.addEventListener("click", async () => {
-  if (!model) {
-    alert("Model not loaded yet.");
-    return;
-  }
+  try {
+    predictBtn.disabled = true;
+    message.innerText = "Checking...";
 
-  predictBtn.disabled = true;
-  message.innerText = "Checking...";
-  await tf.nextFrame();
+    const images = canvases.map(c => c.toDataURL("image/png").split(",")[1]);
 
-  let correct = true;
+    const response = await fetch("https://localhost:3001/classify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images }),
+    });
 
-  for (let i = 0; i < 4; i++) {
-    const maxIndex = await processCanvas(canvases[i]);
-    if (maxIndex === null || currentLabels[i] !== labels[maxIndex]) {
-      correct = false;
-      break;
+    if (!response.ok) {
+      message.innerText = `Server error: ${response.status}`;
+      return;
     }
-  }
 
-  correct ? (message.innerText = "Correct") : clear("Incorrect", false);
-  predictBtn.disabled = false;
+    const data = await response.json();
+    let allCorrect = true;
+
+    data.predictions.forEach(p => {
+      if (p.predictedLabel !== p.correctLabel) allCorrect = false;
+    });
+
+    message.innerText = allCorrect ? "All Correct!" : "Some answers are incorrect";
+
+  } catch (err) {
+    console.error(err);
+    message.innerText = "Error";
+  } finally {
+    predictBtn.disabled = false;
+  }
 });
 
 const getCanvasCoords = (e, canvas) => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  return {
-    x: (e.clientX - rect.left) * scaleX,
-    y: (e.clientY - rect.top) * scaleY
-  };
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
 };
 
 canvases.forEach((canvas, i) => {
@@ -167,19 +110,5 @@ canvases.forEach((canvas, i) => {
 });
 
 export const tfjs = async () => {
-  message.innerText = "Loading model...";
-  try {
-    await tf.setBackend("webgl");
-    await tf.ready();
-  } catch {
-    await tf.setBackend("cpu");
-    await tf.ready();
-  }
-  try {
-    model = await tf.loadGraphModel("tfjs_model/model.json");
-    clear("Draw the required characters", true);
-  } catch (error) {
-    message.innerText = "Failed to load model.";
-    console.error("Model loading error:", error);
-  }
+  clear("Draw the required characters", true);
 };
