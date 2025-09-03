@@ -2,6 +2,8 @@ let drawing = [false, false, false, false];
 
 const SIZE = 140;
 
+const host = "https://localhost:3001"
+
 const canvases = Array.from(document.querySelectorAll(".quad"));
 const clearBtn = document.querySelector("#clearBtn");
 const predictBtn = document.querySelector("#predictBtn");
@@ -16,7 +18,7 @@ const contexts = canvases.map(c => {
 
 const setRandomLabels = async () => {
   try {
-    const res = await fetch("https://localhost:3001/labels");
+    const res = await fetch(`${host}/labels`);
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
     output.innerHTML = data.labels.map(label => `<div>${label}</div>`).join("");
@@ -46,7 +48,7 @@ predictBtn.addEventListener("click", async () => {
 
     const images = canvases.map(c => c.toDataURL("image/png").split(",")[1]);
 
-    const response = await fetch("https://localhost:3001/classify", {
+    const response = await fetch(`${host}/classify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ images }),
