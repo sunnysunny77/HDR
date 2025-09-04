@@ -10,10 +10,10 @@ const predictBtn = document.querySelector("#predictBtn");
 const message = document.querySelector("#message");
 const output = document.querySelector("#output");
 
-const contexts = canvases.map(c => {
-  c.width = SIZE;
-  c.height = SIZE;
-  return c.getContext("2d");
+const contexts = canvases.map(canvas => {
+  canvas.width = SIZE;
+  canvas.height = SIZE;
+  return canvas.getContext("2d");
 });
 
 const setRandomLabels = async () => {
@@ -44,29 +44,29 @@ clearBtn.addEventListener("click", () => {
 predictBtn.addEventListener("click", async () => {
   try {
     predictBtn.disabled = true;
-    message.innerText = "Checking...";
+    message.innerText = "Checking";
 
-    const images = canvases.map(c => c.toDataURL("image/png").split(",")[1]);
+    const images = canvases.map(canvas => canvas.toDataURL("image/png").split(",")[1]);
 
-    const response = await fetch(`${host}/classify`, {
+    const res = await fetch(`${host}/classify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ images }),
     });
 
-    if (!response.ok) {
-      message.innerText = `Server error: ${response.status}`;
+    if (!res.ok) {
+      message.innerText = `Server error: ${res.status}`;
       return;
     }
 
-    const data = await response.json();
-    let allCorrect = true;
+    const data = await res.json();
+    let correct = true;
 
-    data.predictions.forEach(p => {
-      if (p.predictedLabel !== p.correctLabel) allCorrect = false;
+    data.predictions.forEach(prediction => {
+      if (prediction.predictedLabel !== prediction.correctLabel) correct = false;
     });
 
-    message.innerText = allCorrect ? "All Correct!" : "Some answers are incorrect";
+    message.innerText = correct ? "Correct" : "Incorrect";
 
   } catch (err) {
     console.error(err);
@@ -76,38 +76,38 @@ predictBtn.addEventListener("click", async () => {
   }
 });
 
-const getCanvasCoords = (e, canvas) => {
+const getCanvasCoords = (event, canvas) => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  return { x: (event.clientX - rect.left) * scaleX, y: (event.clientY - rect.top) * scaleY };
 };
 
 canvases.forEach((canvas, i) => {
   const ctx = contexts[i];
-  canvas.addEventListener("pointerdown", e => {
-    if (["mouse","pen","touch"].includes(e.pointerType)) {
+  canvas.addEventListener("pointerdown", event => {
+    if (["mouse","pen","touch"].includes(event.pointerType)) {
       drawing[i] = true;
-      const { x, y } = getCanvasCoords(e, canvas);
+      const { x, y } = getCanvasCoords(event, canvas);
       ctx.strokeStyle = "white";
       ctx.lineWidth = Math.max(10, canvas.width / 16);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.beginPath();
       ctx.moveTo(x, y);
-      e.preventDefault();
+      event.preventDefault();
     }
   });
-  canvas.addEventListener("pointermove", e => {
+  canvas.addEventListener("pointermove", event => {
     if (drawing[i]) {
-      const { x, y } = getCanvasCoords(e, canvas);
+      const { x, y } = getCanvasCoords(event, canvas);
       ctx.lineTo(x, y);
       ctx.stroke();
-      e.preventDefault();
+      event.preventDefault();
     }
   });
-  ["pointerup","pointercancel","pointerleave"].forEach(evt =>
-    canvas.addEventListener(evt, () => (drawing[i] = false))
+  ["pointerup","pointercancel","pointerleave"].forEach(event =>
+    canvas.addEventListener(event, () => (drawing[i] = false))
   );
 });
 

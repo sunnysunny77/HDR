@@ -3,7 +3,18 @@ const express = require("express");
 const cors = require("cors");
 
 const tf_app = express();
-tf_app.use(cors());
+const allowedOrigins = ["https://hdr.localhost:3000", "https://hdr.sunnyhome.site"];
+
+tf_app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  }
+}));
 tf_app.use(express.json({ limit: "10mb" }));
 
 const port = 3001;
