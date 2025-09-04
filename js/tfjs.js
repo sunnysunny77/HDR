@@ -28,7 +28,6 @@ const setRandomLabels = async () => {
   }
 };
 
-
 const clear = async (text, reset) => {
   contexts.forEach(ctx => {
     ctx.fillStyle = "black";
@@ -67,7 +66,7 @@ predictBtn.addEventListener("click", async () => {
       if (prediction.predictedLabel !== prediction.correctLabel) correct = false;
     });
 
-    message.innerText = correct ? "Correct" : "Incorrect";
+    clear(correct ? "Correct" : "Incorrect", true);
 
   } catch (err) {
     console.error(err);
