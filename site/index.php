@@ -46,7 +46,7 @@
 
     <div class="text-center alert alert-success p-2 w-100" role="alert" id="message">
 
-      Loading model...
+      Draw the required characters
 
     </div>
 
