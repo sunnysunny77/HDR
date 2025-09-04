@@ -110,6 +110,12 @@ h1 {
   height: 50px;
   box-sizing: border-box;
   margin: 1px;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
 }
 
 .button {

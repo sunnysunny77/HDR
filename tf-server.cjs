@@ -1,6 +1,7 @@
 const tf = require("@tensorflow/tfjs-node");
 const express = require("express");
 const cors = require("cors");
+const { createCanvas } = require("canvas");
 
 const tf_app = express();
 const allowedOrigins = ["https://hdr.localhost:3000", "https://hdr.sunnyhome.site"];
@@ -27,6 +28,20 @@ const loadModel = async () => {
   console.log("Model loaded");
 };
 loadModel();
+
+const drawLabel = (label) => {
+  const canvas = createCanvas(50, 50);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "white";
+  ctx.font = "bold 32px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, canvas.width / 2, canvas.height / 2);
+
+  return canvas.toDataURL();
+};
 
 const getRandomLabels = (count = 4) => {
   return Array.from({ length: count }, () =>
@@ -116,7 +131,11 @@ tf_app.post("/classify", async (req, res) => {
 
 tf_app.get("/labels", (req, res) => {
   currentLabels = getRandomLabels(4);
-  res.json({ labels: currentLabels });
+  const labelImages = currentLabels.map(l => drawLabel(l));
+  res.json({
+    labels: currentLabels,
+    images: labelImages
+  });
 });
 
 tf_app.listen(port, () => {

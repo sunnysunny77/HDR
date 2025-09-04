@@ -21,12 +21,13 @@ const setRandomLabels = async () => {
     const res = await fetch(`${host}/labels`);
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
-    output.innerHTML = data.labels.map(label => `<div>${label}</div>`).join("");
+    output.innerHTML = data.images.map(img => `<div><img src="${img}" alt="label" /></div>`).join("");
   } catch (err) {
     console.error(err);
     message.innerText = "Error fetching labels";
   }
 };
+
 
 const clear = async (text, reset) => {
   contexts.forEach(ctx => {

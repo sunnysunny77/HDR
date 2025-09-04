@@ -48,6 +48,7 @@
     "@tensorflow/tfjs": "latest",
     "@tensorflow/tfjs-node": "latest",
     "bootstrap": "^5.3.3",
+    "canvas": "latest",
     "cors": "latest",
     "cross-env": "latest",
     "dotenv": "latest",
