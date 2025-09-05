@@ -35,12 +35,12 @@
 
     </div>
 
-    <div id="output" class="label-grid">
+    <div class="output-container">
 
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
+      <div id="output" class="label-grid">
+
+
+      </div>
 
     </div>
 

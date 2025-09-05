@@ -3,10 +3,10 @@ const express = require("express");
 const cors = require("cors");
 const { createCanvas } = require("canvas");
 
-const tf_app = express();
+const app = express();
 const allowedOrigins = ["https://hdr.localhost:3000", "https://hdr.sunnyhome.site"];
 
-tf_app.use(cors({
+app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
@@ -16,24 +16,27 @@ tf_app.use(cors({
     }
   }
 }));
-tf_app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "10mb" }));
 
-const port = 3001;
+const PORT = 3001;
 let model;
-const labels = ["0","1","2","3","4","5","6","7","8","9"];
-let currentLabels = [];
-const numberWords = {
-  "0": "zero",
-  "1": "one",
-  "2": "two",
-  "3": "three",
-  "4": "four",
-  "5": "five",
-  "6": "six",
-  "7": "seven",
-  "8": "eight",
-  "9": "nine"
+
+const CLASS_LABELS = [
+  "A","B","C","D","E","F","G","H","I","J","K","L","M",
+  "N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+];
+
+const PHONETIC_MAP = {
+  "A": "ALPHA",   "B": "BRAVO",   "C": "CHARLIE", "D": "DELTA",
+  "E": "ECHO",    "F": "FOXTROT", "G": "GOLF",    "H": "HOTEL",
+  "I": "INDIA",   "J": "JULIET",  "K": "KILO",    "L": "LIMA",
+  "M": "MIKE",    "N": "NOVEMBER","O": "OSCAR",   "P": "PAPA",
+  "Q": "QUEBEC",  "R": "ROMEO",   "S": "SIERRA",  "T": "TANGO",
+  "U": "UNIFORM", "V": "VICTOR",  "W": "WHISKEY", "X": "XRAY",
+  "Y": "YANKEE",  "Z": "ZULU"
 };
+
+let activeLabels = [];
 
 const loadModel = async () => {
   model = await tf.loadGraphModel("file://tfjs_model/model.json");
@@ -41,75 +44,76 @@ const loadModel = async () => {
 };
 loadModel();
 
-const drawLabel = (digit) => {
-  const word = numberWords[digit];
-  const canvas = createCanvas(50, 50);
+const drawPhoneticLabel = (label) => {
+  const word = PHONETIC_MAP[label];
+  const canvasSize = 122;
+  const canvas = createCanvas(canvasSize, canvasSize);
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const padding = 4;
-  const chars = word.split("");
-  const charWidth = (canvas.width - padding * 2) / chars.length;
-
-  let fontSize = 8;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  while (true) {
-    ctx.font = `bold ${fontSize}px sans-serif`;
-    if (ctx.measureText(word).width >= canvas.width - padding * 2 || fontSize >= 20) break;
-    fontSize++;
-  }
-
-  chars.forEach((char, i) => {
-    const x = padding + i * charWidth + charWidth / 2;
-    const y = canvas.height / 2 + (Math.random() * 6 - 3);
-    const angle = (Math.random() * 40 - 20) * Math.PI / 180;
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.fillStyle = `rgb(${Math.random()*150|0}, ${Math.random()*150|0}, ${Math.random()*150|0})`;
-    ctx.fillText(char, 0, 0);
-    ctx.restore();
-  });
-
-  for (let i = 0; i < 50; i++) {
-    ctx.fillStyle = `rgb(${Math.random()*255|0}, ${Math.random()*255|0}, ${Math.random()*255|0})`;
-    ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1, 1);
-  }
-
-  for (let i = 0; i < 3; i++) {
-    ctx.strokeStyle = `rgb(${Math.random()*255|0}, ${Math.random()*255|0}, ${Math.random()*255|0})`;
+  const dotCount = 100;
+  for (let i = 0; i < dotCount; i++) {
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    const alpha = Math.random() < 0.5 ? 0.3 : 0.8;
+    const radius = Math.random() * 3 + 1;
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
     ctx.beginPath();
-    ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-    ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+    ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, radius, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = "rgba(0,0,0,0.2)";
+  ctx.lineWidth = 0.5;
+  for (let j = 0; j < 2; j++) {
+    ctx.beginPath();
+    ctx.moveTo(0, Math.random() * canvas.height);
+    for (let x = 0; x < canvas.width; x += 5) {
+      ctx.lineTo(
+        x,
+        (canvas.height / 2) + Math.sin(x / 5 + Math.random() * 2) * 12 + (Math.random() * 20 - 10)
+      );
+    }
     ctx.stroke();
   }
+
+  const fontSize = 18;
+  ctx.font = `bold ${fontSize}px Sans`;
+
+  // Calculate total word width with spacing
+  let totalWidth = 0;
+  for (let char of word) {
+    totalWidth += ctx.measureText(char).width * 0.8; // spacing factor
+  }
+
+  // Start x so word is horizontally centered
+  let x = (canvas.width - totalWidth) / 2;
+
+  for (let char of word) {
+    const angle = (Math.random() - 0.5) * 0.6;
+    const offsetY = (Math.random() - 0.5) * 18;
+    const color = `rgba(${Math.floor(Math.random() * 256)},${Math.floor(Math.random() * 256)},${Math.floor(Math.random() * 256)},1)`;
+
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.translate(x, canvas.height / 2 + offsetY);
+    ctx.rotate(angle);
+    ctx.fillText(char, 0, 0);
+    ctx.restore();
+
+    x += ctx.measureText(char).width * 0.8; // move x for next char
+  }
+
 
   return canvas.toDataURL();
 };
 
-
 const getRandomLabels = (count = 4) => {
   return Array.from({ length: count }, () =>
-    labels[Math.floor(Math.random() * labels.length)]
-  );
-};
-
-const classifyImages = async (images, providedLabels, labels) => {
-  return Promise.all(
-    images.map(async (base64, i) => {
-      const buffer = Buffer.from(base64, "base64");
-      const predIndex = await processImageNode(buffer);
-      const predLabel = predIndex !== null ? labels[predIndex] : null;
-
-      return {
-        correctLabel: providedLabels[i],
-        predictedLabel: predLabel
-      };
-    })
+    CLASS_LABELS[Math.floor(Math.random() * CLASS_LABELS.length)]
   );
 };
 
@@ -119,9 +123,7 @@ const processImageNode = async (imageBuffer) => {
   const coords = await tf.whereAsync(mask);
 
   if (coords.shape[0] === 0) {
-    img.dispose();
-    mask.dispose();
-    coords.dispose();
+    img.dispose(); mask.dispose(); coords.dispose();
     return null;
   }
 
@@ -136,11 +138,7 @@ const processImageNode = async (imageBuffer) => {
   const height = maxY - minY + 1;
 
   let imgTensor = img.mean(2).expandDims(2);
-  img.dispose();
-  mask.dispose();
-  coords.dispose();
-  ys.dispose();
-  xs.dispose();
+  img.dispose(); mask.dispose(); coords.dispose(); ys.dispose(); xs.dispose();
 
   imgTensor = imgTensor.slice([minY, minX, 0], [height, width, 1]);
   const scale = 20 / Math.max(height, width);
@@ -164,15 +162,26 @@ const processImageNode = async (imageBuffer) => {
   return maxIndex;
 };
 
-tf_app.post("/classify", async (req, res) => {
+app.post("/classify", async (req, res) => {
   try {
     if (!model) return res.status(503).json({ error: "Model not loaded yet" });
     const { images } = req.body;
     if (!(images?.length > 0)) return res.status(400).json({ error: "No images sent" });
-    if (!currentLabels || currentLabels.length !== images.length) {
+    if (!activeLabels || activeLabels.length !== images.length) {
       return res.status(400).json({ error: "Server labels not set or mismatch" });
     }
-    const results = await classifyImages(images, currentLabels, labels);
+
+    const results = await Promise.all(images.map(async (base64, i) => {
+      const buffer = Buffer.from(base64, "base64");
+      const predIndex = await processImageNode(buffer);
+      const predictedLabel = predIndex !== null ? CLASS_LABELS[predIndex] : null;
+
+      return {
+        correctLabel: activeLabels[i],
+        predictedLabel
+      };
+    }));
+
     res.json({ predictions: results });
   } catch (err) {
     console.error(err);
@@ -180,15 +189,15 @@ tf_app.post("/classify", async (req, res) => {
   }
 });
 
-tf_app.get("/labels", (req, res) => {
-  currentLabels = getRandomLabels(4);
-  const labelImages = currentLabels.map(label => drawLabel(label));
+app.get("/labels", (req, res) => {
+  activeLabels = getRandomLabels(4);
+  const labelImages = activeLabels.map(label => drawPhoneticLabel(label));
   res.json({
-    labels: currentLabels,
+    labels: activeLabels,
     images: labelImages
   });
 });
 
-tf_app.listen(port, () => {
-  console.log(`Server live: http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Server live: http://localhost:${PORT}`);
 });

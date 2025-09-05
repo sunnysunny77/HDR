@@ -21,12 +21,22 @@ const setRandomLabels = async () => {
     const res = await fetch(`${host}/labels`);
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
-    output.innerHTML = data.images.map(img => `<div><img src="${img}" alt="label" /></div>`).join("");
+    const firstTwo = data.images.slice(0, 2);
+    const secondTwo = data.images.slice(2, 4);
+    output.innerHTML = `
+      <div class="label-row">
+        ${firstTwo.map(img => `<img src="${img}" alt="label" />`).join("")}
+      </div>
+      <div class="label-row">
+        ${secondTwo.map(img => `<img src="${img}" alt="label" />`).join("")}
+      </div>
+    `;
   } catch (err) {
     console.error(err);
     message.innerText = "Error fetching labels";
   }
 };
+
 
 const clear = async (text, reset) => {
   contexts.forEach(ctx => {
@@ -38,7 +48,7 @@ const clear = async (text, reset) => {
 };
 
 clearBtn.addEventListener("click", () => {
-  clear("Draw the required characters", true);
+  clear("Draw a capital letter in the boxes", true);
 });
 
 predictBtn.addEventListener("click", async () => {
@@ -112,5 +122,5 @@ canvases.forEach((canvas, i) => {
 });
 
 export const tfjs = async () => {
-  clear("Draw the required characters", true);
+  clear("Draw a capital letter in the boxes", true);
 };
