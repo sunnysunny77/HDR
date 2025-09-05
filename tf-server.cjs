@@ -83,13 +83,11 @@ const drawPhoneticLabel = (label) => {
   const fontSize = 18;
   ctx.font = `bold ${fontSize}px Sans`;
 
-  // Calculate total word width with spacing
   let totalWidth = 0;
   for (let char of word) {
-    totalWidth += ctx.measureText(char).width * 0.8; // spacing factor
+    totalWidth += ctx.measureText(char).width * 0.8;
   }
 
-  // Start x so word is horizontally centered
   let x = (canvas.width - totalWidth) / 2;
 
   for (let char of word) {
@@ -104,9 +102,8 @@ const drawPhoneticLabel = (label) => {
     ctx.fillText(char, 0, 0);
     ctx.restore();
 
-    x += ctx.measureText(char).width * 0.8; // move x for next char
+    x += ctx.measureText(char).width * 0.8;
   }
-
 
   return canvas.toDataURL();
 };

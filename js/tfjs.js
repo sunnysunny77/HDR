@@ -37,7 +37,6 @@ const setRandomLabels = async () => {
   }
 };
 
-
 const clear = async (text, reset) => {
   contexts.forEach(ctx => {
     ctx.fillStyle = "black";
