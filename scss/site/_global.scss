@@ -108,22 +108,13 @@ h1 {
   bottom: 0;
   left: 0;
   width: 100%;
-}
-
-.label-row {
   display: flex;
-  width: 100%;
-}
-
-.label-grid > div {
-  width: 100%;
+  flex-wrap: wrap;
   img {
     width: 50%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
   }
 }
+
 
 .button {
   width: 80px;

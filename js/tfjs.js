@@ -21,16 +21,7 @@ const setRandomLabels = async () => {
     const res = await fetch(`${host}/labels`);
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
-    const firstTwo = data.images.slice(0, 2);
-    const secondTwo = data.images.slice(2, 4);
-    output.innerHTML = `
-      <div class="label-row">
-        ${firstTwo.map(img => `<img src="${img}" alt="label" />`).join("")}
-      </div>
-      <div class="label-row">
-        ${secondTwo.map(img => `<img src="${img}" alt="label" />`).join("")}
-      </div>
-    `;
+    output.innerHTML = `${data.images.map(img => `<img src="${img}" alt="label" />`).join("")}`;
   } catch (err) {
     console.error(err);
     message.innerText = "Error fetching labels";
