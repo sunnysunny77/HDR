@@ -39,14 +39,13 @@
 
       <div id="output" class="label-grid">
 
-
       </div>
 
     </div>
 
     <div class="text-center alert alert-success p-2 w-100" role="alert" id="message">
 
-      Draw the required characters
+      Loading model
 
     </div>
 
