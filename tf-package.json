@@ -1,0 +1,15 @@
+{
+  "name": "public_html",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "postinstall": "TFJS_BUILD_FROM_SOURCE=1 node -e 'console.log(\"Building tfjs-node from source\")' && npm rebuild @tensorflow/tfjs-node --build-from-source"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "canvas": "^3.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  }
+}
