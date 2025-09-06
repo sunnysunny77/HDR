@@ -5,7 +5,7 @@ let drawing = [false, false, false, false];
 const SIZE = 140;
 const INVERT = false;
 
-const host = "https://hdr.sunnyhome.site";
+const host = "http://localhost:3001";
 
 const canvases = Array.from(document.querySelectorAll(".quad"));
 const clearBtn = document.querySelector("#clearBtn");
