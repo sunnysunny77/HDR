@@ -3,56 +3,65 @@ const express = require("express");
 const cors = require("cors");
 const { createCanvas } = require("canvas");
 
+const PORT = 3001;
 const app = express();
+
 const allowedOrigins = ["https://hdr.localhost:3000", "https://hdr.sunnyhome.site"];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  }
-}));
+app.use(cors({origin: (origin, callback) => {
+  if (!origin) return callback(null, true);
+  if (allowedOrigins.includes(origin)) {
+    callback(null, true);
+  } else {
+    callback(new Error("Not allowed by CORS"));
+  };
+}}));
 app.use(express.json({ limit: "10mb" }));
 
-const PORT = 3001;
 let model;
 
-const CLASS_LABELS = [
+const labels = [
   "A","B","C","D","E","F","G","H","I","J","K","L","M",
-  "N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+  "N","O","P","Q","R","S","T","U","V","W","X","Y","Z",
 ];
 
-const PHONETIC_MAP = {
+const phoneticLabels = {
   "A": "ALPHA",   "B": "BRAVO",   "C": "CHARLIE", "D": "DELTA",
   "E": "ECHO",    "F": "FOXTROT", "G": "GOLF",    "H": "HOTEL",
   "I": "INDIA",   "J": "JULIET",  "K": "KILO",    "L": "LIMA",
   "M": "MIKE",    "N": "NOVEMBER","O": "OSCAR",   "P": "PAPA",
   "Q": "QUEBEC",  "R": "ROMEO",   "S": "SIERRA",  "T": "TANGO",
   "U": "UNIFORM", "V": "VICTOR",  "W": "WHISKEY", "X": "XRAY",
-  "Y": "YANKEE",  "Z": "ZULU"
+  "Y": "YANKEE",  "Z": "ZULU",
 };
 
-let activeLabels = [];
+let currentLabels = [];
 
 const loadModel = async () => {
-  model = await tf.loadGraphModel("file://tfjs_model/model.json");
-  console.log("Model loaded");
+  if (!model) {
+    model = await tf.loadGraphModel("file://tfjs_model/model.json");
+    console.log("Model loaded");
+  };
 };
-loadModel();
 
 const drawPhoneticLabel = (label) => {
-  const word = PHONETIC_MAP[label];
-  const canvas = createCanvas(122, 61);
+  const width = 122;
+  const height = 61;
+  const fill = "white";
+  const dotCount = 50;
+  const lineStyle = "rgba(0,0,0,0.34)";
+  const lineWidth = 0.5;
+  const fontSize = 18;
+  const font = `bold ${fontSize}px Sans`;
+  const overlap = 0.05;
+
+  const word = phoneticLabels[label];
+  const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  ctx.fillStyle = "white";
+  ctx.fillStyle = fill;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const dotCount = 61;
   for (let i = 0; i < dotCount; i++) {
     const r = Math.floor(Math.random() * 256);
     const g = Math.floor(Math.random() * 256);
@@ -65,8 +74,8 @@ const drawPhoneticLabel = (label) => {
     ctx.fill();
   }
 
-  ctx.strokeStyle = "rgba(0,0,0,0.34)";
-  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = lineStyle;
+  ctx.lineWidth = lineWidth;
   for (let j = 0; j < 2; j++) {
     ctx.beginPath();
     ctx.moveTo(0, Math.random() * canvas.height);
@@ -79,21 +88,21 @@ const drawPhoneticLabel = (label) => {
     ctx.stroke();
   }
 
-  const fontSize = 18;
-  ctx.font = `bold ${fontSize}px Sans`;
-
+  ctx.font = font;
   let totalWidth = 0;
   for (let char of word) {
     totalWidth += ctx.measureText(char).width * 0.8;
   }
-
   let x = (canvas.width - totalWidth) / 2;
-
   for (let char of word) {
     const angle = (Math.random() - 0.5) * 0.6;
     const offsetY = (Math.random() - 0.5) * 18;
-    const color = `rgba(${Math.floor(Math.random() * 256)},${Math.floor(Math.random() * 256)},${Math.floor(Math.random() * 256)},1)`;
-
+    const min = 50;
+    const max = 150;
+    const r = Math.floor(Math.random() * (max - min) + min);
+    const g = Math.floor(Math.random() * (max - min) + min);
+    const b = Math.floor(Math.random() * (max - min) + min);
+    const color = `rgba(${r},${g},${b},1)`
     ctx.save();
     ctx.fillStyle = color;
     ctx.translate(x, canvas.height / 2 + offsetY);
@@ -101,18 +110,18 @@ const drawPhoneticLabel = (label) => {
     ctx.fillText(char, 0, 0);
     ctx.restore();
 
-    const overlap = -ctx.measureText(char).width * 0.125;
-    x += ctx.measureText(char).width * 0.8 + overlap;
+    const overlapCalc = -ctx.measureText(char).width * overlap;
+    x += ctx.measureText(char).width * 0.8 + overlapCalc;
   }
 
   return canvas.toDataURL();
 };
 
-const getRandomLabels = (count = 4) => {
-  return Array.from({ length: count }, () =>
-    CLASS_LABELS[Math.floor(Math.random() * CLASS_LABELS.length)]
-  );
-};
+app.get("/labels", (req, res) => {
+  currentLabels = Array.from({ length: 4 },() => labels[Math.floor(Math.random() * labels.length)]);
+  const labelImages = currentLabels.map(label => drawPhoneticLabel(label));
+  res.json({images: labelImages});
+});
 
 const processImageNode = async (data, shape) => {
   const tensor = tf.tensor(data, shape);
@@ -173,16 +182,16 @@ app.post("/classify", async (req, res) => {
 
     const { images } = req.body;
 
-    if (!activeLabels || activeLabels.length !== images.length) {
-      throw new Error("Server error");
+    if (!currentLabels || currentLabels.length !== images.length) {
+      throw new Error("Error");
     }
 
     const results = await Promise.all(
       images.map(async (image, i) => {
         const predIndex = await processImageNode(image.data, image.shape);
         return {
-          correctLabel: activeLabels[i],
-          predictedLabel: predIndex !== null ? CLASS_LABELS[predIndex] : null,
+          correctLabel: currentLabels[i],
+          predictedLabel: predIndex !== null ? labels[predIndex] : null,
         };
       })
     );
@@ -190,17 +199,8 @@ app.post("/classify", async (req, res) => {
     res.json({ predictions: results });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error", details: err.message });
+    res.status(500).json({ error: "Error" });
   }
-});
-
-app.get("/labels", (req, res) => {
-  activeLabels = getRandomLabels(4);
-  const labelImages = activeLabels.map(label => drawPhoneticLabel(label));
-  res.json({
-    labels: activeLabels,
-    images: labelImages
-  });
 });
 
 app.listen(PORT, () => {

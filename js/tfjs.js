@@ -26,7 +26,7 @@ const setRandomLabels = async () => {
     output.innerHTML = `${data.images.map(img => `<img src="${img}" alt="label" />`).join("")}`;
   } catch (err) {
     console.error(err);
-    message.innerText = "Error fetching labels";
+    message.innerText = "Error";
   }
 };
 
@@ -44,37 +44,25 @@ predictBtn.addEventListener("click", async () => {
   try {
     predictBtn.disabled = true;
     message.innerText = "Checking";
-
     const tensors = canvases.map(canvas =>{
-        return tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
-      }
-    );
-
+      return tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
+    });
     const images = tensors.map(tensor => ({
       data: Array.from(tensor.dataSync()),
       shape: tensor.shape
     }));
-
     const res = await fetch(`${host}/classify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ images }),
     });
-
-    if (!res.ok) {
-      message.innerText = `Server error: ${res.status}`;
-      return;
-    }
-
+    if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
     let correct = true;
-
     data.predictions.forEach(prediction => {
       if (prediction.predictedLabel !== prediction.correctLabel) correct = false;
     });
-
     clear(correct ? "Correct" : "Incorrect", true);
-
   } catch (err) {
     console.error(err);
     message.innerText = "Error";
