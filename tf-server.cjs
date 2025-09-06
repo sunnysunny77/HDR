@@ -115,7 +115,7 @@ const getRandomLabels = (count = 4) => {
 };
 
 const processImageNode = async (data, shape) => {
-   const tensor = tf.tensor(data, shape);
+  const tensor = tf.tensor(data, shape);
 
   const mask = tensor.greater(0.1);
   const coords = await tf.whereAsync(mask);
