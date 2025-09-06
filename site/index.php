@@ -16,14 +16,17 @@
 
   <div class="hr-container d-flex flex-column" id="container">
 
-    <h1 class="text-center">Handwritten recognition</h1>
+    <h1 class="text-center mb-2">Handwritten recognition</h1>
 
     <div class="mb-4" id="canvas-wrapper">
 
-      <canvas class="quad"></canvas>
-      <canvas class="quad"></canvas>
-      <canvas class="quad"></canvas>
-      <canvas class="quad"></canvas>
+        <div class="before"></div>
+        <canvas class="quad"></canvas>
+        <canvas class="quad"></canvas>
+        <canvas class="quad"></canvas>
+        <canvas class="quad"></canvas>
+        <div class="after"></div>
+        <div class="fill"></div>
 
     </div>
 
