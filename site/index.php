@@ -14,11 +14,11 @@
 
 <body data-overlayscrollbars-initialize>
 
-  <div class="hr-container" id="container">
+  <div class="hr-container d-flex flex-column" id="container">
 
     <h1 class="text-center">Handwritten recognition</h1>
 
-    <div id="canvas-wrapper">
+    <div class="mb-4" id="canvas-wrapper">
 
       <canvas class="quad"></canvas>
       <canvas class="quad"></canvas>
@@ -27,7 +27,7 @@
 
     </div>
 
-   <div class="d-flex flex-wrap justify-content-center">
+   <div class="d-flex flex-wrap justify-content-center mb-4">
 
       <button class="btn btn-success m-2 button" id="clearBtn">Reset</button>
 
@@ -35,7 +35,7 @@
 
     </div>
 
-    <div class="output-container">
+    <div class="output-container mb-3">
 
       <div id="output" class="label-grid">
 
@@ -43,7 +43,7 @@
 
     </div>
 
-    <div class="text-center alert alert-success p-2 w-100" role="alert" id="message">
+    <div class="text-center alert alert-success p-2 w-100 mb-0" role="alert" id="message">
 
       Loading model
 

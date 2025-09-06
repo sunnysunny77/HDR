@@ -1,3 +1,5 @@
+import * as tf from "@tensorflow/tfjs";
+
 let drawing = [false, false, false, false];
 
 const SIZE = 140;
@@ -29,10 +31,7 @@ const setRandomLabels = async () => {
 };
 
 const clear = async (text, reset) => {
-  contexts.forEach(ctx => {
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, SIZE, SIZE);
-  });
+  contexts.forEach(ctx => ctx.clearRect(0, 0, SIZE, SIZE));
   if (reset) await setRandomLabels();
   message.innerText = text;
 };
@@ -46,7 +45,15 @@ predictBtn.addEventListener("click", async () => {
     predictBtn.disabled = true;
     message.innerText = "Checking";
 
-    const images = canvases.map(canvas => canvas.toDataURL("image/png").split(",")[1]);
+    const tensors = canvases.map(canvas =>{
+        return tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
+      }
+    );
+
+    const images = tensors.map(tensor => ({
+      data: Array.from(tensor.dataSync()),
+      shape: tensor.shape
+    }));
 
     const res = await fetch(`${host}/classify`, {
       method: "POST",
@@ -89,7 +96,8 @@ canvases.forEach((canvas, i) => {
     if (["mouse","pen","touch"].includes(event.pointerType)) {
       drawing[i] = true;
       const { x, y } = getCanvasCoords(event, canvas);
-      ctx.strokeStyle = "white";
+      const strokeColor = getComputedStyle(canvas).getPropertyValue("--stroke-color").trim();
+      ctx.strokeStyle = strokeColor || "black";
       ctx.lineWidth = Math.max(10, canvas.width / 16);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";

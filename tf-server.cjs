@@ -65,7 +65,7 @@ const drawPhoneticLabel = (label) => {
     ctx.fill();
   }
 
-  ctx.strokeStyle = "rgba(0,0,0,0.2)";
+  ctx.strokeStyle = "rgba(0,0,0,0.34)";
   ctx.lineWidth = 0.5;
   for (let j = 0; j < 2; j++) {
     ctx.beginPath();
@@ -101,7 +101,8 @@ const drawPhoneticLabel = (label) => {
     ctx.fillText(char, 0, 0);
     ctx.restore();
 
-    x += ctx.measureText(char).width * 0.8;
+    const overlap = -ctx.measureText(char).width * 0.125;
+    x += ctx.measureText(char).width * 0.8 + overlap;
   }
 
   return canvas.toDataURL();
@@ -113,13 +114,16 @@ const getRandomLabels = (count = 4) => {
   );
 };
 
-const processImageNode = async (imageBuffer) => {
-  let img = tf.node.decodeImage(imageBuffer, 3).toFloat().div(255.0);
-  const mask = img.greater(0.1);
+const processImageNode = async (data, shape) => {
+   const tensor = tf.tensor(data, shape);
+
+  const mask = tensor.greater(0.1);
   const coords = await tf.whereAsync(mask);
 
   if (coords.shape[0] === 0) {
-    img.dispose(); mask.dispose(); coords.dispose();
+    tensor.dispose();
+    mask.dispose();
+    coords.dispose();
     return null;
   }
 
@@ -130,58 +134,63 @@ const processImageNode = async (imageBuffer) => {
   const maxY = ys.max().arraySync();
   const minX = xs.min().arraySync();
   const maxX = xs.max().arraySync();
+
   const width = maxX - minX + 1;
   const height = maxY - minY + 1;
 
-  let imgTensor = img.mean(2).expandDims(2);
-  img.dispose(); mask.dispose(); coords.dispose(); ys.dispose(); xs.dispose();
+  const sliced = tensor.slice([minY, minX, 0], [height, width, 1]);
 
-  imgTensor = imgTensor.slice([minY, minX, 0], [height, width, 1]);
   const scale = 20 / Math.max(height, width);
   const newHeight = Math.round(height * scale);
   const newWidth = Math.round(width * scale);
-  imgTensor = imgTensor.resizeBilinear([newHeight, newWidth]);
+  const resized = sliced.resizeBilinear([newHeight, newWidth]);
 
   const top = Math.floor((28 - newHeight) / 2);
   const bottom = 28 - newHeight - top;
   const left = Math.floor((28 - newWidth) / 2);
   const right = 28 - newWidth - left;
+  const input = resized.pad([[top, bottom], [left, right], [0, 0]]).expandDims(0);
 
-  imgTensor = imgTensor.pad([[top, bottom], [left, right], [0, 0]]).expandDims(0);
-
-  const prediction = model.predict(imgTensor);
+  const prediction = model.predict(input);
   const maxIndex = prediction.argMax(-1).dataSync()[0];
 
+  tensor.dispose();
+  mask.dispose();
+  coords.dispose();
+  ys.dispose();
+  xs.dispose();
+  sliced.dispose();
+  resized.dispose();
+  input.dispose();
   prediction.dispose();
-  imgTensor.dispose();
 
   return maxIndex;
 };
 
 app.post("/classify", async (req, res) => {
   try {
-    if (!model) return res.status(503).json({ error: "Model not loaded yet" });
+    if (!model) await loadModel();
+
     const { images } = req.body;
-    if (!(images?.length > 0)) return res.status(400).json({ error: "No images sent" });
+
     if (!activeLabels || activeLabels.length !== images.length) {
-      return res.status(400).json({ error: "Server labels not set or mismatch" });
+      throw new Error("Server error");
     }
 
-    const results = await Promise.all(images.map(async (base64, i) => {
-      const buffer = Buffer.from(base64, "base64");
-      const predIndex = await processImageNode(buffer);
-      const predictedLabel = predIndex !== null ? CLASS_LABELS[predIndex] : null;
-
-      return {
-        correctLabel: activeLabels[i],
-        predictedLabel
-      };
-    }));
+    const results = await Promise.all(
+      images.map(async (image, i) => {
+        const predIndex = await processImageNode(image.data, image.shape);
+        return {
+          correctLabel: activeLabels[i],
+          predictedLabel: predIndex !== null ? CLASS_LABELS[predIndex] : null,
+        };
+      })
+    );
 
     res.json({ predictions: results });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error during classification", details: err.message });
+    res.status(500).json({ error: "Error", details: err.message });
   }
 });
 
