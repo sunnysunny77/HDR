@@ -3,8 +3,9 @@ import * as tf from "@tensorflow/tfjs";
 let drawing = [false, false, false, false];
 
 const SIZE = 140;
+const INVERT = false;
 
-const host = "http://localhost:3001";
+const host = "https://hdr.sunnyhome.site";
 
 const canvases = Array.from(document.querySelectorAll(".quad"));
 const clearBtn = document.querySelector("#clearBtn");
@@ -31,7 +32,14 @@ const setRandomLabels = async () => {
 };
 
 const clear = async (text, reset) => {
-  contexts.forEach(ctx => ctx.clearRect(0, 0, SIZE, SIZE));
+  contexts.forEach(ctx => {
+        if (INVERT) {
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, SIZE, SIZE);
+        } else {
+          ctx.clearRect(0, 0, SIZE, SIZE)
+        }
+    });
   if (reset) await setRandomLabels();
   message.innerText = text;
 };
@@ -44,7 +52,10 @@ predictBtn.addEventListener("click", async () => {
   try {
     predictBtn.disabled = true;
     message.innerText = "Checking";
-    const tensors = canvases.map(canvas =>{return tf.browser.fromPixels(canvas, 1).div(255.0);});
+    const tensors = canvases.map(canvas =>{
+      const img = tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
+      return INVERT ? tf.sub(1.0, img) : img;
+    });
     const images = tensors.map(tensor => ({
       data: Array.from(new Uint8Array(tensor.mul(255).dataSync())),
       shape: tensor.shape
@@ -82,7 +93,7 @@ canvases.forEach((canvas, i) => {
     if (["mouse","pen","touch"].includes(event.pointerType)) {
       drawing[i] = true;
       const { x, y } = getCanvasCoords(event, canvas);
-      ctx.strokeStyle = "white";
+      ctx.strokeStyle = INVERT ? "black" : "white";
       ctx.lineWidth = Math.max(10, canvas.width / 16);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
