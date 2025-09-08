@@ -15,15 +15,26 @@ tf.keras.mixed_precision.set_global_policy("mixed_float16")
 tf.config.optimizer.set_jit(True)
 
 BATCH_SIZE = 512
-NUM_CLASSES = 10
-    
-df_train = pd.read_csv("./emnist-digits-train.csv", header=None)
-df_test = pd.read_csv("./emnist-digits-test.csv", header=None)
+NUM_CLASSES = 26
+
+df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
+df_test = pd.read_csv("./emnist-byclass-test.csv", header=None)
 
 X_train = df_train.drop(columns=[0]).to_numpy()
 y_train = df_train[0].to_numpy()
 X_test = df_test.drop(columns=[0]).to_numpy()
 y_test = df_test[0].to_numpy()
+
+train_mask = (y_train >= 10) & (y_train <= 35)
+test_mask = (y_test >= 10) & (y_test <= 35)
+
+X_train = X_train[train_mask]
+y_train = y_train[train_mask]
+X_test = X_test[test_mask]
+y_test = y_test[test_mask]
+
+y_train -= 10
+y_test -= 10
 
 X_train = X_train.reshape(-1, 28, 28, 1)
 X_test = X_test.reshape(-1, 28, 28, 1)
@@ -34,28 +45,21 @@ def fix_orientation(images):
 X_train = fix_orientation(X_train)
 X_test = fix_orientation(X_test)
 
-X_train = X_train.astype(np.float32)
-X_test = X_test.astype(np.float32)
-
-X_train = X_train / 255.0
-X_test = X_test / 255.0
+X_train = X_train.astype(np.float32) / 255.0
+X_test = X_test.astype(np.float32) / 255.0
 
 X_train, X_val, y_train, y_val = train_test_split(
     X_train, y_train, test_size=0.1, random_state=42, stratify=y_train
 )
 
-y_train = to_categorical(y_train, num_classes=NUM_CLASSES)
-y_val = to_categorical(y_val, num_classes=NUM_CLASSES)
-y_test = to_categorical(y_test, num_classes=NUM_CLASSES)
-
-y_train = y_train.astype(np.float32)
-y_val = y_val.astype(np.float32)
-y_test = y_test.astype(np.float32)
+y_train = to_categorical(y_train, num_classes=NUM_CLASSES).astype(np.float32)
+y_val = to_categorical(y_val, num_classes=NUM_CLASSES).astype(np.float32)
+y_test = to_categorical(y_test, num_classes=NUM_CLASSES).astype(np.float32)
 
 augmentation = Sequential([
-    layers.RandomRotation(0.05),   
-    layers.RandomTranslation(0.05, 0.05), 
-    layers.RandomZoom(0.05),   
+    layers.RandomRotation(0.05),
+    layers.RandomTranslation(0.05, 0.05),
+    layers.RandomZoom(0.05),
     layers.RandomContrast(0.05)
 ])
 
@@ -63,10 +67,10 @@ def prepare_augmentation(x, y):
     x = augmentation(x, training=True)
     return x, y
 
-train = ( 
-    Dataset.from_tensor_slices((X_train, y_train)) 
+train = (
+    Dataset.from_tensor_slices((X_train, y_train))
     .shuffle(65536)
-    .batch(BATCH_SIZE) 
+    .batch(BATCH_SIZE)
     .map(prepare_augmentation, num_parallel_calls=tf.data.AUTOTUNE)
     .prefetch(tf.data.AUTOTUNE)
 )
@@ -81,6 +85,7 @@ test = (
     Dataset.from_tensor_slices((X_test, y_test))
     .batch(BATCH_SIZE)
 )
+
 inputs = layers.Input(shape=(28, 28, 1))
 
 x = layers.Conv2D(16, 3, strides=1, padding="same", use_bias=False)(inputs)
@@ -160,4 +165,4 @@ predict_labels = predict.argmax(axis=1)
 y_test_labels = y_test.argmax(axis=1)
 accuracy = accuracy_score(y_test_labels, predict_labels)
 print("Test accuracy:", accuracy)
-Test accuracy: 0.997725
+Test accuracy: 0.9888023990301793
