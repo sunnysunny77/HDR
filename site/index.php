@@ -20,13 +20,8 @@
 
     <div class="mb-4" id="canvas-wrapper">
 
-        <div class="before"></div>
-        <canvas class="quad"></canvas>
-        <canvas class="quad"></canvas>
-        <canvas class="quad"></canvas>
-        <canvas class="quad"></canvas>
-        <div class="after"></div>
-        <div class="fill"></div>
+      <canvas class="quad"></canvas>
+      <div class="fill"></div>
 
     </div>
 

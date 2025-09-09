@@ -1,30 +1,29 @@
 import * as tf from "@tensorflow/tfjs";
 
-let drawing = [false, false, false, false];
+let drawing = false;
 
-const SIZE = 140;
+const CANVAS_WIDTH = 250;
+const CANVAS_HEIGHT = 125;
 const INVERT = false;
 
 const host = "http://localhost:3001";
 
-const canvases = Array.from(document.querySelectorAll(".quad"));
+const canvas = document.querySelector(".quad");
 const clearBtn = document.querySelector("#clearBtn");
 const predictBtn = document.querySelector("#predictBtn");
 const message = document.querySelector("#message");
 const output = document.querySelector("#output");
 
-const contexts = canvases.map(canvas => {
-  canvas.width = SIZE;
-  canvas.height = SIZE;
-  return canvas.getContext("2d");
-});
+canvas.width = CANVAS_WIDTH;
+canvas.height = CANVAS_HEIGHT;
+const ctx = canvas.getContext("2d");
 
 const setRandomLabels = async () => {
   try {
     const res = await fetch(`${host}/labels`);
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
-    output.innerHTML = `${data.images.map(img => `<img src="${img}" alt="label" />`).join("")}`;
+    output.innerHTML = `<img src="${data.image}" alt="label" />`;
   } catch (err) {
     console.error(err);
     message.innerText = "Error";
@@ -32,46 +31,46 @@ const setRandomLabels = async () => {
 };
 
 const clear = async (text, reset) => {
-  contexts.forEach(ctx => {
-        if (INVERT) {
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, SIZE, SIZE);
-        } else {
-          ctx.clearRect(0, 0, SIZE, SIZE)
-        }
-    });
+  if (INVERT) {
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  } else {
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }
   if (reset) await setRandomLabels();
   message.innerText = text;
 };
 
 clearBtn.addEventListener("click", () => {
-  clear("Draw a capital letter in the boxes", true);
+  clear("Draw the word", true);
 });
 
 predictBtn.addEventListener("click", async () => {
   try {
     predictBtn.disabled = true;
     message.innerText = "Checking";
-    const tensors = canvases.map(canvas =>{
-      const img = tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
-      return INVERT ? tf.sub(1.0, img) : img;
-    });
-    const images = tensors.map(tensor => ({
-      data: Array.from(new Uint8Array(tensor.mul(255).dataSync())),
-      shape: tensor.shape
-    }));
+
+    let img = tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
+    img = INVERT ? tf.sub(1.0, img) : img;
+
+    const image = {
+      data: Array.from(new Uint8Array(img.mul(255).dataSync())),
+      shape: img.shape
+    };
+
+    img.dispose();
+
     const res = await fetch(`${host}/classify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ images }),
+      body: JSON.stringify({ image: image }),
     });
+
     if (!res.ok) throw new Error(res.statusText);
+
     const data = await res.json();
-    let correct = true;
-    data.predictions.forEach(prediction => {
-      if (prediction.predictedLabel !== prediction.correctLabel) correct = false;
-    });
-    clear(correct ? "Correct" : "Incorrect", true);
+
+    clear(data.correct ? "Correct" : "Incorrect", true);
   } catch (err) {
     console.error(err);
     message.innerText = "Error";
@@ -84,37 +83,40 @@ const getCanvasCoords = (event, canvas) => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  return { x: (event.clientX - rect.left) * scaleX, y: (event.clientY - rect.top) * scaleY };
+  return {
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY,
+  };
 };
 
-canvases.forEach((canvas, i) => {
-  const ctx = contexts[i];
-  canvas.addEventListener("pointerdown", event => {
-    if (["mouse","pen","touch"].includes(event.pointerType)) {
-      drawing[i] = true;
-      const { x, y } = getCanvasCoords(event, canvas);
-      ctx.strokeStyle = INVERT ? "black" : "white";
-      ctx.lineWidth = Math.max(10, canvas.width / 16);
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      event.preventDefault();
-    }
-  });
-  canvas.addEventListener("pointermove", event => {
-    if (drawing[i]) {
-      const { x, y } = getCanvasCoords(event, canvas);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      event.preventDefault();
-    }
-  });
-  ["pointerup","pointercancel","pointerleave"].forEach(event =>
-    canvas.addEventListener(event, () => (drawing[i] = false))
-  );
+canvas.addEventListener("pointerdown", event => {
+  if (["mouse", "pen", "touch"].includes(event.pointerType)) {
+    drawing = true;
+    const { x, y } = getCanvasCoords(event, canvas);
+    ctx.strokeStyle = INVERT ? "black" : "white";
+    const minDim = Math.min(canvas.width, canvas.height);
+    ctx.lineWidth = Math.max(1, Math.round(minDim / 18));
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    event.preventDefault();
+  }
 });
 
+canvas.addEventListener("pointermove", event => {
+  if (drawing) {
+    const { x, y } = getCanvasCoords(event, canvas);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    event.preventDefault();
+  }
+});
+
+["pointerup", "pointercancel", "pointerleave"].forEach(event =>
+  canvas.addEventListener(event, () => (drawing = false))
+);
+
 export const tfjs = async () => {
-  clear("Draw a capital letter in the boxes", true);
+  clear("Draw the word", true);
 };

@@ -21,21 +21,14 @@ app.use(express.json({ limit: "10mb" }));
 let model;
 
 const labels = [
-  "A","B","C","D","E","F","G","H","I","J","K","L","M",
-  "N","O","P","Q","R","S","T","U","V","W","X","Y","Z",
+  "THAT", "WITH", "HAVE", "FROM", "THIS", "WILL", "THEY", "WERE", "BEEN", "MORE",
+  "SAID", "THEM", "THAN", "INTO", "MADE", "ONLY", "WHEN", "THIS", "LAST", "SOME",
+  "THEY", "TIME", "GOOD", "ALSO", "MOST", "EVEN", "LIFE", "WHAT", "OVER", "WEST",
+  "USED", "SUCH", "MANY", "WORK", "FILM", "MUST", "MUCH", "LIKE", "YOUR", "MAKE",
+  "NEED", "DOWN", "TAKE", "MISS", "YEAR", "WELL", "PART", "PLAY", "WEEK", "DAYS"
 ];
 
-const phoneticLabels = {
-  "A": "ALPHA",   "B": "BRAVO",   "C": "CHARLIE", "D": "DELTA",
-  "E": "ECHO",    "F": "FOXTROT", "G": "GOLF",    "H": "HOTEL",
-  "I": "INDIA",   "J": "JULIET",  "K": "KILO",    "L": "LIMA",
-  "M": "MIKE",    "N": "NOVEMBER","O": "OSCAR",   "P": "PAPA",
-  "Q": "QUEBEC",  "R": "ROMEO",   "S": "SIERRA",  "T": "TANGO",
-  "U": "UNIFORM", "V": "VICTOR",  "W": "WHISKEY", "X": "XRAY",
-  "Y": "YANKEE",  "Z": "ZULU",
-};
-
-let currentLabels = [];
+let currentLabel = "";
 
 const loadModel = async () => {
   if (!model) {
@@ -44,18 +37,18 @@ const loadModel = async () => {
   };
 };
 
-const drawPhoneticLabel = (label) => {
-  const width = 122;
-  const height = 61;
+const drawLabel = (label) => {
+  const width = 250;
+  const height = 100;
   const fill = "white";
-  const dotCount = 50;
+  const dotCount = 250;
   const lineStyle = "rgba(0,0,0,0.34)";
   const lineWidth = 0.5;
-  const fontSize = 18;
+  const fontSize = 30;
   const font = `bold ${fontSize}px Sans`;
   const overlap = 0.05;
 
-  const word = phoneticLabels[label];
+  const word = label;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
@@ -118,58 +111,17 @@ const drawPhoneticLabel = (label) => {
 };
 
 app.get("/labels", (req, res) => {
-  currentLabels = Array.from({ length: 4 },() => labels[Math.floor(Math.random() * labels.length)]);
-  const labelImages = currentLabels.map(label => drawPhoneticLabel(label));
-  res.json({images: labelImages});
+  currentLabel = labels[Math.floor(Math.random() * labels.length)];
+  res.json({image: drawLabel(currentLabel)});
 });
 
 const processImageNode = async (data, shape) => {
   const tensor = tf.tensor(data, shape, "float32").div(255.0);
-
-  const mask = tensor.greater(0.1);
-  const coords = await tf.whereAsync(mask);
-
-  if (coords.shape[0] === 0) {
-    tensor.dispose();
-    mask.dispose();
-    coords.dispose();
-    return null;
-  }
-
-  const ys = coords.slice([0, 0], [-1, 1]).squeeze();
-  const xs = coords.slice([0, 1], [-1, 1]).squeeze();
-
-  const minY = ys.min().arraySync();
-  const maxY = ys.max().arraySync();
-  const minX = xs.min().arraySync();
-  const maxX = xs.max().arraySync();
-
-  const width = maxX - minX + 1;
-  const height = maxY - minY + 1;
-
-  const sliced = tensor.slice([minY, minX, 0], [height, width, 1]);
-
-  const scale = 20 / Math.max(height, width);
-  const newHeight = Math.round(height * scale);
-  const newWidth = Math.round(width * scale);
-  const resized = sliced.resizeBilinear([newHeight, newWidth]);
-
-  const top = Math.floor((28 - newHeight) / 2);
-  const bottom = 28 - newHeight - top;
-  const left = Math.floor((28 - newWidth) / 2);
-  const right = 28 - newWidth - left;
-  const input = resized.pad([[top, bottom], [left, right], [0, 0]]).expandDims(0);
-
+  const input = tensor.resizeBilinear([28, 112]).expandDims(0);
   const prediction = model.predict(input);
   const maxIndex = prediction.argMax(-1).dataSync()[0];
 
   tensor.dispose();
-  mask.dispose();
-  coords.dispose();
-  ys.dispose();
-  xs.dispose();
-  sliced.dispose();
-  resized.dispose();
   input.dispose();
   prediction.dispose();
 
@@ -180,23 +132,15 @@ app.post("/classify", async (req, res) => {
   try {
     if (!model) await loadModel();
 
-    const { images } = req.body;
+    const { image } = req.body;
 
-    if (!currentLabels || currentLabels.length !== images.length) {
+    if (!currentLabel) {
       throw new Error("Error");
     }
 
-    const results = await Promise.all(
-      images.map(async (image, i) => {
-        const predIndex = await processImageNode(image.data, image.shape);
-        return {
-          correctLabel: currentLabels[i],
-          predictedLabel: predIndex !== null ? labels[predIndex] : null,
-        };
-      })
-    );
+   const predIndex = await processImageNode(image.data, image.shape);
 
-    res.json({ predictions: results });
+    res.json({ correct: currentLabel === labels[predIndex] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error" });
