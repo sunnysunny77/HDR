@@ -37,6 +37,8 @@
 
       <div id="output" class="label-grid">
 
+        <img class="spinner" src="./images/spinner.gif" width="250" height="100" alt="spinner" />
+
       </div>
 
     </div>

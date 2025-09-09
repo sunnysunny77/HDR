@@ -53,6 +53,7 @@ h1 {
   image-rendering: pixelated;
   z-index: 1;
   border: 1px solid $charlie;
+  border-radius: 5px;
 }
 
 #canvas-wrapper .fill {
@@ -84,4 +85,8 @@ h1 {
 
 .alert-success {
   font-size: 12px;
+}
+
+.spinner {
+  object-fit: contain;
 }
