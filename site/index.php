@@ -45,7 +45,7 @@
 
     <div class="text-center alert alert-success p-2 w-100 mb-0" role="alert" id="message">
 
-      Loading model
+      Loading
 
     </div>
 
