@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
+import numpy as np
+import pandas as pd
 import tensorflow as tf
 import cv2
 import string
-from collections import Counter
 from tensorflow.keras.losses import CategoricalFocalCrossentropy
 from tensorflow.keras import layers, models
 from tensorflow.keras.models import Sequential
@@ -30,14 +31,20 @@ for line in RAW:
         LABELS.append(label)
 
 BATCH_SIZE = 128
-NUM_SAMPLES_PER_WORD = 500   
-WORDS = [label.upper() for label, count in Counter(LABELS).most_common(50)]
+NUM_SAMPLES_PER_WORD = 500
+LETTERS = np.array(list(string.ascii_uppercase))  
+LABELS = np.char.upper(np.array(LABELS))
+UNIQUE, COUNTS = np.unique(LABELS, return_counts=True)
+ORDER = np.argsort(-COUNTS)
+TOP = UNIQUE[ORDER][:100]
+MASK = np.array([np.all(np.isin(list(w), LETTERS)) for w in TOP])
+WORDS = TOP[MASK]
 WORD_INDEX = {w: i for i, w in enumerate(WORDS)}
 NUM_WORDS = len(WORDS)
-MAX_LETTERS = max(len(w) for w in WORDS)
+MAX_LETTERS = np.max(np.char.str_len(WORDS))
 IMG_HEIGHT = 28
-IMG_WIDTH = IMG_HEIGHT * MAX_LETTERS 
-LETTERS = string.ascii_uppercase 
+IMG_WIDTH = IMG_HEIGHT * MAX_LETTERS
+print(WORDS)
 
 df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
 
@@ -60,7 +67,7 @@ def generate_word(WORDS, X_train, Y_train, NUM_SAMPLES_PER_WORD):
         while count < NUM_SAMPLES_PER_WORD:
             imgs = []
             for char in word.upper():
-                idx = LETTERS.index(char)  
+                idx = np.where(LETTERS == char)[0][0]
                 candidates = np.where(Y_train == idx)[0]
                 img = X_train[np.random.choice(candidates)]
                 imgs.append(img)

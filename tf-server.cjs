@@ -21,11 +21,16 @@ app.use(express.json({ limit: "10mb" }));
 let model;
 
 const labels = [
-  "THAT", "WITH", "HAVE", "FROM", "THIS", "WILL", "THEY", "WERE", "BEEN", "MORE",
-  "SAID", "THEM", "THAN", "INTO", "MADE", "ONLY", "WHEN", "THIS", "LAST", "SOME",
-  "THEY", "TIME", "GOOD", "ALSO", "MOST", "EVEN", "LIFE", "WHAT", "OVER", "WEST",
-  "USED", "SUCH", "MANY", "WORK", "FILM", "MUST", "MUCH", "LIKE", "YOUR", "MAKE",
-  "NEED", "DOWN", "TAKE", "MISS", "YEAR", "WELL", "PART", "PLAY", "WEEK", "DAYS"
+  "THAT", "WITH", "THIS", "THEY", "FROM", "HAVE", "WILL", "WERE", "BEEN", "MORE",
+  "SAID", "WHEN", "ONLY", "THEM", "LAST", "THAN", "INTO", "MADE", "SOME", "MOST",
+  "WHAT", "GOOD", "TIME", "EVEN", "ALSO", "WEST", "MANY", "SUCH", "OVER", "LIFE",
+  "THEN", "USED", "FILM", "WORK", "MUCH", "MAKE", "LIKE", "MUST", "PLAY", "WEEK",
+  "YOUR", "TAKE", "NEED", "MISS", "WELL", "DOWN", "YEAR", "HERE", "PART", "DAYS",
+  "VERY", "HOME", "FOUR", "JUST", "LONG", "BACK", "SEEN", "EACH", "WENT", "FULL",
+  "CASE", "NEXT", "BOTH", "DONE", "TOLD", "WANT", "COME", "SHOW", "NATO", "LEFT",
+  "LORD", "SAME", "KNOW", "DOES", "VIEW", "GIRL", "HELP", "FACT", "TEXT", "SIDE",
+  "SAYS", "REAL", "MIND", "LOVE", "GIVE", "LIVE", "EVER", "FACE", "ROOM", "BOOK",
+  "FIVE", "HALF", "BEST", "EAST", "PLAN", "EASY", "FIND", "FREE", "REST"
 ];
 
 let currentLabel = "";
@@ -41,14 +46,13 @@ const drawLabel = (label) => {
   const width = 250;
   const height = 100;
   const fill = "white";
-  const dotCount = 250;
+  const dotCount = 350;
   const lineStyle = "rgba(0,0,0,0.34)";
   const lineWidth = 0.5;
   const fontSize = 30;
   const font = `bold ${fontSize}px Sans`;
-  const overlap = 0.05;
+  const spacing = 0.5;
 
-  const word = label;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
@@ -83,11 +87,17 @@ const drawLabel = (label) => {
 
   ctx.font = font;
   let totalWidth = 0;
-  for (const char of word) {
-    totalWidth += ctx.measureText(char).width * 0.8;
+  const charWidths = [];
+  for (const char of label) {
+    const w = ctx.measureText(char).width;
+    charWidths.push(w);
+    totalWidth += w * (1 + spacing);
   }
-  let x = (canvas.width - totalWidth) / 2;
-  for (const char of word) {
+
+  let x = (width - totalWidth) / 2;
+
+  for (let i = 0; i < label.length; i++) {
+    const char = label[i];
     const angle = (Math.random() - 0.5) * 0.6;
     const offsetY = (Math.random() - 0.5) * 18;
     const min = 50;
@@ -95,16 +105,14 @@ const drawLabel = (label) => {
     const r = Math.floor(Math.random() * (max - min) + min);
     const g = Math.floor(Math.random() * (max - min) + min);
     const b = Math.floor(Math.random() * (max - min) + min);
-    const color = `rgba(${r},${g},${b},1)`;
     ctx.save();
-    ctx.fillStyle = color;
-    ctx.translate(x, canvas.height / 2 + offsetY);
+    ctx.fillStyle = `rgba(${r},${g},${b},1)`;
+    ctx.translate(x, height / 2 + offsetY);
     ctx.rotate(angle);
     ctx.fillText(char, 0, 0);
     ctx.restore();
 
-    const overlapCalc = -ctx.measureText(char).width * overlap;
-    x += ctx.measureText(char).width * 0.8 + overlapCalc;
+    x += charWidths[i] * (1 + spacing);
   }
 
   return canvas.toDataURL();
