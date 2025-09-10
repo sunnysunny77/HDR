@@ -9,8 +9,9 @@ const INVERT = false;
 const host = "http://localhost:3001";
 
 const canvas = document.querySelector(".quad");
-const clearBtn = document.querySelector("#clearBtn");
+const resetBtn = document.querySelector("#resetBtn");
 const predictBtn = document.querySelector("#predictBtn");
+const clearBtn = document.querySelector("#clearBtn");
 const message = document.querySelector("#message");
 const output = document.querySelector("#output");
 
@@ -30,19 +31,24 @@ const setRandomLabels = async () => {
   }
 };
 
-const clear = async (text, reset) => {
+const clear = () => {
   if (INVERT) {
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   } else {
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }
-  if (reset) await setRandomLabels();
-  message.innerText = text;
 };
 
+resetBtn.addEventListener("click",  async () => {
+  clear();
+  await setRandomLabels();
+  message.innerText = "Draw the word";
+});
+
 clearBtn.addEventListener("click", () => {
-  clear("Draw the word", true);
+  clear();
+  message.innerText = "Draw the word";
 });
 
 predictBtn.addEventListener("click", async () => {
@@ -70,7 +76,7 @@ predictBtn.addEventListener("click", async () => {
 
     const data = await res.json();
 
-    clear(data.correct ? "Correct" : "Incorrect", true);
+    message.innerText = data.correct ? "Correct" : "Incorrect";
   } catch (err) {
     console.error(err);
     message.innerText = "Error";
@@ -118,5 +124,6 @@ canvas.addEventListener("pointermove", event => {
 );
 
 export const tfjs = async () => {
-  clear("Draw the word", true);
+  await setRandomLabels();
+  message.innerText = "Draw the word";
 };

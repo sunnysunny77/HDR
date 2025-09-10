@@ -119,8 +119,13 @@ const drawLabel = (label) => {
 };
 
 app.get("/labels", (req, res) => {
-  currentLabel = labels[Math.floor(Math.random() * labels.length)];
-  res.json({image: drawLabel(currentLabel)});
+  try {
+    currentLabel = labels[Math.floor(Math.random() * labels.length)];
+    res.json({image: drawLabel(currentLabel)});
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
 });
 
 const processImageNode = async (data, shape) => {
@@ -143,15 +148,15 @@ app.post("/classify", async (req, res) => {
     const { image } = req.body;
 
     if (!currentLabel) {
-      throw new Error("Error");
+      throw new Error();
     }
 
-   const predIndex = await processImageNode(image.data, image.shape);
+    const predIndex = await processImageNode(image.data, image.shape);
 
     res.json({ correct: currentLabel === labels[predIndex] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error" });
+    res.sendStatus(500);
   }
 });
 

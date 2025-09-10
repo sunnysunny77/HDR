@@ -25,11 +25,11 @@
 
     </div>
 
-   <div class="d-flex flex-wrap justify-content-center mb-4">
+    <div class="d-flex flex-wrap justify-content-center mb-4">
 
-      <button class="btn btn-success m-2 button" id="clearBtn">Reset</button>
+      <button class="btn btn-success m-2 button" id="resetBtn">New</button>
 
-      <button class="btn btn-success m-2 button" id="predictBtn">Submit</button>
+      <button class="btn btn-success m-2 button" id="clearBtn">Clear</button>
 
     </div>
 
@@ -43,9 +43,15 @@
 
     </div>
 
-    <div class="text-center alert alert-success p-2 w-100 mb-0" role="alert" id="message">
+    <div class="text-center alert alert-success p-2 w-100 mb-3" role="alert" id="message">
 
       Loading
+
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-center">
+
+      <button class="btn btn-success w-100" id="predictBtn">Send</button>
 
     </div>
 
