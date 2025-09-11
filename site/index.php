@@ -37,15 +37,15 @@
 
       <div id="output" class="label-grid">
 
-        <img class="spinner" src="./images/spinner.gif" width="250" height="99.19" alt="spinner" />
+        <img class="spinner" src="./images/spinner.gif" width="70" height="70" alt="spinner" />
 
       </div>
 
     </div>
 
-    <div class="text-center alert alert-success p-2 w-100 mb-3" role="alert" id="message">
+    <div class="text-center alert alert-success w-100 d-flex justify-content-center align-items-center p-0 mb-3" role="alert" id="message">
 
-      Loading
+      <img class="spinner" src="./images/spinner.gif" width="30" height="30" alt="spinner" />
 
     </div>
 

@@ -54,7 +54,7 @@ clearBtn.addEventListener("click", () => {
 predictBtn.addEventListener("click", async () => {
   try {
     predictBtn.disabled = true;
-    message.innerText = "Checking";
+    message.innerHTML = "<img class='spinner' src='./images/spinner.gif' width='30' height='30' alt='spinner' />";
 
     let img = tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
     img = INVERT ? tf.sub(1.0, img) : img;
