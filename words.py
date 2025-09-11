@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import numpy as np
-import pandas as pd
 import tensorflow as tf
 import cv2
 import string
@@ -32,18 +30,23 @@ for line in RAW:
 
 BATCH_SIZE = 128
 NUM_SAMPLES_PER_WORD = 500
-LETTERS = np.array(list(string.ascii_uppercase))  
+LETTERS = np.array(list(string.ascii_uppercase))
+LETTER_INDEX = {ch: i for i, ch in enumerate(LETTERS)}
+
 LABELS = np.char.upper(np.array(LABELS))
 UNIQUE, COUNTS = np.unique(LABELS, return_counts=True)
 ORDER = np.argsort(-COUNTS)
 TOP = UNIQUE[ORDER][:100]
-MASK = np.array([np.all(np.isin(list(w), LETTERS)) for w in TOP])
+
+MASK = np.array([set(w).issubset(set(LETTERS)) for w in TOP])
 WORDS = TOP[MASK]
+
 WORD_INDEX = {w: i for i, w in enumerate(WORDS)}
 NUM_WORDS = len(WORDS)
 MAX_LETTERS = np.max(np.char.str_len(WORDS))
 IMG_HEIGHT = 28
 IMG_WIDTH = IMG_HEIGHT * MAX_LETTERS
+
 print(WORDS)
 
 df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
@@ -51,36 +54,35 @@ df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
 X_train = df_train.drop(columns=[0]).to_numpy()
 y_train = df_train[0].to_numpy()
 
-MASK = (y_train >= 10) & (y_train <= 35)
-X_train = X_train[MASK]
-y_train = y_train[MASK] - 10  
+MASK = (10 <= y_train) & (y_train <= 35)
+X_train, y_train = X_train[MASK], y_train[MASK] - 10
 
 X_train = X_train.reshape(-1, 28, 28)
 
 X_train = np.flip(np.rot90(X_train, k=3, axes=(1, 2)), axis=2)
 
-def generate_word(WORDS, X_train, Y_train, NUM_SAMPLES_PER_WORD):
-    X_words = [] 
-    y_words = []
+CANDIDATES = {i: np.where(y_train == i)[0] for i in range(len(LETTERS))}
+
+def generate_word():
+    X_words, y_words = [], []
     for word in WORDS:
-        count = 0
-        while count < NUM_SAMPLES_PER_WORD:
+        for _ in range(NUM_SAMPLES_PER_WORD):
             imgs = []
             for char in word.upper():
-                idx = np.where(LETTERS == char)[0][0]
-                candidates = np.where(Y_train == idx)[0]
+                idx = LETTER_INDEX[char]
+                candidates = CANDIDATES[idx]
                 img = X_train[np.random.choice(candidates)]
                 imgs.append(img)
             word_img = np.hstack(imgs)
             word_img = cv2.resize(word_img, (IMG_WIDTH, IMG_HEIGHT))
             X_words.append(word_img[..., np.newaxis].astype(np.float32) / 255.0)
             y_words.append(WORD_INDEX[word])
-            count += 1  
     X_words = np.array(X_words)
     y_words = to_categorical(y_words, num_classes=NUM_WORDS)
-    return X_words, y_words
+    idx = np.random.permutation(len(X_words))
+    return X_words[idx], y_words[idx]
 
-X_train, y_train = generate_word(WORDS, X_train, y_train, NUM_SAMPLES_PER_WORD)
+X_train, y_train = generate_word()
 
 X_train, X_val, y_train, y_val = train_test_split(
     X_train, y_train, test_size=0.1, random_state=42, stratify=y_train.argmax(axis=1)
