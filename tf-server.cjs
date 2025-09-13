@@ -8,10 +8,20 @@ require('dotenv').config({ path: ".env.tf" });
 
 const PORT = process.env.PORT;
 const app = express();
-const isDev = process.env.DEV === "true";
-const allowedOrigins = [isDev ? `https://hdr.localhost:3000`: "https://hdr.sunnyhome.site"];
+const allowedOrigins = [process.env.ORIGIN];
 
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      console.warn("Blocked CORS request from:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: "10mb" }));
 app.use(session({
   secret: `${process.env.SECRET_KEY}`,
@@ -42,6 +52,7 @@ const labels = [
 const loadModel = async () => {
   if (!model) {
     model = await tf.loadGraphModel("file://tfjs_model/model.json");
+    
     console.log("Model loaded");
   };
 };
