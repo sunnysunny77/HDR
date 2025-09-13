@@ -1,3 +1,3 @@
 SECRET_KEY="development"
-DEV="fasle"
+DEV="true"
 PORT=3001
