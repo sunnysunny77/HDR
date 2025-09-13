@@ -9,7 +9,7 @@ require('dotenv').config({ path: ".env.tf" });
 const PORT = process.env.PORT;
 const app = express();
 const isDev = process.env.DEV === "true";
-const allowedOrigins = [isDev ? `https://${process.env.CN}:3000`: "https://hdr.sunnyhome.site"];
+const allowedOrigins = [isDev ? `https://hdr.localhost:3000`: "https://hdr.sunnyhome.site"];
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: "10mb" }));
