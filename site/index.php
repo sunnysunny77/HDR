@@ -35,7 +35,7 @@
 
     <div class="output-container mb-3">
 
-      <div id="output" class="label-grid">
+      <div id="output" class="label-grid d-flex justify-content-center align-items-center">
 
         <img class="spinner" src="./images/spinner.gif" width="70" height="70" alt="spinner" />
 
