@@ -54,6 +54,7 @@
     "dotenv": "latest",
     "eslint": "latest",
     "express": "latest",
+    "express-session": "latest",
     "fs": "latest",
     "globals": "latest",
     "hostile": "latest",

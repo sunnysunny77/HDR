@@ -6,7 +6,7 @@ const CANVAS_WIDTH = 250;
 const CANVAS_HEIGHT = 125;
 const INVERT = false;
 
-const host = "http://localhost:3001";
+const host = "https://hdr.localhost:3000/api";
 
 const canvas = document.querySelector(".quad");
 const resetBtn = document.querySelector("#resetBtn");
@@ -21,7 +21,9 @@ const ctx = canvas.getContext("2d");
 
 const setRandomLabels = async () => {
   try {
-    const res = await fetch(`${host}/labels`);
+    const res = await fetch(`${host}/labels`, {
+      credentials: "include"
+    });
     if (!res.ok) throw new Error(res.statusText);
     const data = await res.json();
     output.innerHTML = `<img src="${data.image}" alt="label" />`;
@@ -70,6 +72,7 @@ predictBtn.addEventListener("click", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image: image }),
+      credentials: "include"
     });
 
     if (!res.ok) throw new Error(res.statusText);

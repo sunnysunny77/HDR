@@ -2,21 +2,27 @@ const tf = require("@tensorflow/tfjs-node");
 const express = require("express");
 const cors = require("cors");
 const { createCanvas } = require("canvas");
+const session = require("express-session");
 
-const PORT = 3001;
+require('dotenv').config({ path: ".env.tf" });
+
+const PORT = process.env.PORT;
 const app = express();
+const isDev = process.env.DEV === "true";
+const allowedOrigins = [isDev ? `https://${process.env.CN}:3000`: "https://hdr.sunnyhome.site"];
 
-const allowedOrigins = ["https://hdr.localhost:3000", "https://hdr.sunnyhome.site"];
-
-app.use(cors({origin: (origin, callback) => {
-  if (!origin) return callback(null, true);
-  if (allowedOrigins.includes(origin)) {
-    callback(null, true);
-  } else {
-    callback(new Error("Not allowed by CORS"));
-  };
-}}));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: "10mb" }));
+app.use(session({
+  secret: `${process.env.SECRET_KEY}`,
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false
+  }
+}));
 
 let model;
 
@@ -32,8 +38,6 @@ const labels = [
   "SAYS", "REAL", "MIND", "LOVE", "GIVE", "LIVE", "EVER", "FACE", "ROOM", "BOOK",
   "FIVE", "HALF", "BEST", "EAST", "PLAN", "EASY", "FIND", "FREE", "REST"
 ];
-
-let currentLabel = "";
 
 const loadModel = async () => {
   if (!model) {
@@ -120,8 +124,10 @@ const drawLabel = (label) => {
 
 app.get("/labels", (req, res) => {
   try {
-    currentLabel = labels[Math.floor(Math.random() * labels.length)];
-    res.json({image: drawLabel(currentLabel)});
+    const labelIndex = Math.floor(Math.random() * labels.length);
+    req.session.labelId = labelIndex;
+
+    res.json({ image: drawLabel(labels[labelIndex]) });
   } catch (err) {
     console.error(err);
     res.sendStatus(500);
@@ -144,16 +150,12 @@ const processImageNode = async (data, shape) => {
 app.post("/classify", async (req, res) => {
   try {
     if (!model) await loadModel();
-
     const { image } = req.body;
-
-    if (!currentLabel) {
-      throw new Error();
-    }
-
     const predIndex = await processImageNode(image.data, image.shape);
-
-    res.json({ correct: currentLabel === labels[predIndex] });
+    const labelId = req.session.labelId;
+    const correct = labelId === predIndex;
+    
+    res.json({ correct:  correct });
   } catch (err) {
     console.error(err);
     res.sendStatus(500);

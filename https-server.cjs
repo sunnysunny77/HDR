@@ -9,6 +9,20 @@ const local_domian = express();
 
 app.use(vhost(`${process.env.CN}`, sub_domain));
 app.use(vhost("localhost",local_domian));
+
+app.use("/api", (req, res) => {
+    req.pipe(http.request({
+        host: "localhost",
+        port: "3001",
+        path: req.url,
+        method: req.method,
+        headers: req.headers,
+        body: req.body
+    }, (resp) => {
+        res.writeHead(resp.statusCode,resp.headers);
+        resp.pipe(res);
+    }));
+});
 app.use((req, res) => {
     req.pipe(http.request({
         host: "127.0.0.1",
