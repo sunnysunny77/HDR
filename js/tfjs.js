@@ -127,6 +127,12 @@ canvas.addEventListener("pointermove", event => {
 );
 
 export const tfjs = async () => {
+  if (INVERT) {
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  } else {
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }
   await setRandomLabels();
   message.innerText = "Draw the word";
 };
