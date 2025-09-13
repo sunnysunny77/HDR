@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import cv2
-import string
 from tensorflow.keras.losses import CategoricalFocalCrossentropy
 from tensorflow.keras import layers, models
 from tensorflow.keras.models import Sequential
@@ -16,7 +15,7 @@ from sklearn.metrics import accuracy_score
 tf.keras.mixed_precision.set_global_policy("mixed_float16")
 tf.config.optimizer.set_jit(True)
 
-with open("./words.txt") as f:
+with open("/kaggle/input/iam-handwriting-word-database/words_new.txt") as f:
     lines = f.readlines()
     
 RAW = lines[18:]
@@ -30,16 +29,15 @@ for line in RAW:
 
 BATCH_SIZE = 128
 NUM_SAMPLES_PER_WORD = 500
-LETTERS = np.array(list(string.ascii_uppercase))
-LETTER_INDEX = {ch: i for i, ch in enumerate(LETTERS)}
 
 LABELS = np.char.upper(np.array(LABELS))
 UNIQUE, COUNTS = np.unique(LABELS, return_counts=True)
 ORDER = np.argsort(-COUNTS)
 TOP = UNIQUE[ORDER][:100]
 
-MASK = np.array([set(w).issubset(set(LETTERS)) for w in TOP])
-WORDS = TOP[MASK]
+VALID_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+WORDS = [w for w in TOP if set(w).issubset(VALID_CHARS)]
+WORDS = np.array(WORDS)
 
 WORD_INDEX = {w: i for i, w in enumerate(WORDS)}
 NUM_WORDS = len(WORDS)
@@ -49,7 +47,7 @@ IMG_WIDTH = IMG_HEIGHT * MAX_LETTERS
 
 print(WORDS)
 
-df_train = pd.read_csv("./emnist-byclass-train.csv", header=None)
+df_train = pd.read_csv("/kaggle/input/emnist/emnist-byclass-test.csv", header=None)
 
 X_train = df_train.drop(columns=[0]).to_numpy()
 y_train = df_train[0].to_numpy()
@@ -61,7 +59,7 @@ X_train = X_train.reshape(-1, 28, 28)
 
 X_train = np.flip(np.rot90(X_train, k=3, axes=(1, 2)), axis=2)
 
-CANDIDATES = {i: np.where(y_train == i)[0] for i in range(len(LETTERS))}
+CANDIDATES = {i: np.where(y_train == i)[0] for i in range(26)}
 
 def generate_word():
     X_words, y_words = [], []
@@ -69,7 +67,7 @@ def generate_word():
         for _ in range(NUM_SAMPLES_PER_WORD):
             imgs = []
             for char in word.upper():
-                idx = LETTER_INDEX[char]
+                idx = ord(char) - ord('A')
                 candidates = CANDIDATES[idx]
                 img = X_train[np.random.choice(candidates)]
                 imgs.append(img)
