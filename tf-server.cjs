@@ -4,7 +4,7 @@ const cors = require("cors");
 const { createCanvas } = require("canvas");
 const session = require("express-session");
 
-require('dotenv').config({ path: ".env.tf" });
+require("dotenv").config({ path: ".env.tf" });
 
 const PORT = process.env.PORT;
 const app = express();
@@ -147,7 +147,7 @@ app.get("/labels", (req, res) => {
 
 const processImageNode = async (data, shape) => {
   const tensor = tf.tensor(data, shape, "float32").div(255.0);
-  const input = tensor.resizeBilinear([28, 112]).expandDims(0);
+  const input = tensor.expandDims(0);
   const prediction = model.predict(input);
   const maxIndex = prediction.argMax(-1).dataSync()[0];
 

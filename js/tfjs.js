@@ -2,8 +2,8 @@ import * as tf from "@tensorflow/tfjs";
 
 let drawing = false;
 
-const CANVAS_WIDTH = 250;
-const CANVAS_HEIGHT = 125;
+const CANVAS_WIDTH = 280;
+const CANVAS_HEIGHT = 140;
 const INVERT = false;
 
 const host = "https://hdr.localhost:3000/api";
@@ -53,13 +53,51 @@ clearBtn.addEventListener("click", () => {
   message.innerText = "Draw the word";
 });
 
+const resizeCanvas = (obj) => {
+  const resizedCanvas = document.createElement("canvas");
+  resizedCanvas.width = 112;
+  resizedCanvas.height = 28;
+  const resizedCtx = resizedCanvas.getContext("2d");
+
+  resizedCtx.drawImage(
+    obj,
+    0, 0, CANVAS_WIDTH, CANVAS_HEIGHT,
+    0, 0, 112, 28
+  );
+
+  return resizedCanvas;
+};
+
+const invertCanvas = (ctx) => {
+  const image = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  const invertedCanvas = document.createElement("canvas");
+  invertedCanvas.width = CANVAS_WIDTH;
+  invertedCanvas.height = CANVAS_HEIGHT;
+  const invertedCtx = invertedCanvas.getContext("2d");
+
+  const invertedData = ctx.createImageData(image.width, image.height);
+
+  for (let i = 0; i < image.data.length; i += 4) {
+    invertedData.data[i] = 255 - image.data[i];
+    invertedData.data[i + 1] = 255 - image.data[i + 1];
+    invertedData.data[i + 2] = 255 - image.data[i + 2];
+    invertedData.data[i + 3] = image.data[i + 3];
+  };
+
+  invertedCtx.putImageData(invertedData, 0, 0);
+
+  return invertedCanvas;
+};
+
 predictBtn.addEventListener("click", async () => {
   try {
     predictBtn.disabled = true;
     message.innerHTML = "<img class='spinner' src='./images/spinner.gif' width='30' height='30' alt='spinner' />";
 
-    let img = tf.browser.fromPixels(canvas, 1).toFloat().div(255.0);
-    img = INVERT ? tf.sub(1.0, img) : img;
+    const obj = INVERT ? invertCanvas(ctx) : canvas;
+    const resized = resizeCanvas(obj);
+    const img = tf.browser.fromPixels(resized, 1).toFloat().div(255.0);
 
     const image = {
       data: Array.from(new Uint8Array(img.mul(255).dataSync())),
