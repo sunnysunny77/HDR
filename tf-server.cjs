@@ -58,8 +58,8 @@ const loadModel = async () => {
 };
 
 const drawLabel = (label) => {
-  const width = 250;
-  const height = 100;
+  const width = 280;
+  const height = 112;
   const fill = "white";
   const dotCount = 350;
   const lineStyle = "rgba(0,0,0,0.34)";
