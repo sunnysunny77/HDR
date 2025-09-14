@@ -62,6 +62,8 @@ h1 {
   z-index: 1;
   border: 1px solid $charlie;
   border-radius: 5px;
+  touch-action: none;
+  -ms-touch-action: none;
 }
 
 #canvas-wrapper .fill {

@@ -27,9 +27,9 @@
 
     <div class="d-flex flex-wrap justify-content-center mb-4">
 
-      <button class="btn btn-success m-2 p-1 button" id="resetBtn">New</button>
+      <button class="btn btn-success mx-2 my-1 p-1 button" id="resetBtn">New</button>
 
-      <button class="btn btn-success m-2 p-1 button" id="clearBtn">Clear</button>
+      <button class="btn btn-success mx-2 my-1 p-1 button" id="clearBtn">Clear</button>
 
     </div>
 
