@@ -12,13 +12,13 @@
   <link rel="apple-touch-icon" href="images/pwa-logo-small.webp" />
 </head>
 
-<body data-overlayscrollbars-initialize>
+<body data-overlayscrollbars-initialize class="d-flex justify-content-center">
 
   <div class="hr-container d-flex flex-column" id="container">
 
-    <h1 class="text-center mb-2">Handwritten recognition</h1>
+    <h1 class="text-center mb-4">Handwritten recognition</h1>
 
-    <div class="mb-4" id="canvas-wrapper">
+    <div class="mb-4 d-flex" id="canvas-wrapper">
 
       <canvas class="quad"></canvas>
       <div class="fill"></div>
@@ -27,9 +27,9 @@
 
     <div class="d-flex flex-wrap justify-content-center mb-4">
 
-      <button class="btn btn-success m-2 button" id="resetBtn">New</button>
+      <button class="btn btn-success mx-2 p-1 button" id="resetBtn">New</button>
 
-      <button class="btn btn-success m-2 button" id="clearBtn">Clear</button>
+      <button class="btn btn-success mx-2 p-1 button" id="clearBtn">Clear</button>
 
     </div>
 
@@ -51,7 +51,7 @@
 
     <div class="d-flex flex-wrap justify-content-center">
 
-      <button class="btn btn-success w-100" id="predictBtn">Send</button>
+      <button class="btn btn-success w-100 p-1" id="predictBtn">Send</button>
 
     </div>
 
