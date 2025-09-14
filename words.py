@@ -28,7 +28,7 @@ for line in RAW:
         LABELS.append(label)
 
 BATCH_SIZE = 128
-NUM_SAMPLES_PER_WORD = 500
+NUM_SAMPLES_PER_WORD = 1000
 
 LABELS = np.char.upper(np.array(LABELS))
 UNIQUE, COUNTS = np.unique(LABELS, return_counts=True)
