@@ -2,8 +2,8 @@
 <html lang="en" data-overlayscrollbars-initialize>
 <head>
   <meta charset="utf-8" />
-  <meta name="description" content="HDR" />
-  <meta name="keywords" content="HDR" />
+  <meta name="description" content="Hand drawn recognition" />
+  <meta name="keywords" content="Hand drawn recognition" />
   <meta name="author" content="D>C" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HDR</title>
@@ -12,50 +12,54 @@
   <link rel="apple-touch-icon" href="images/pwa-logo-small.webp" />
 </head>
 
-<body data-overlayscrollbars-initialize class="d-flex justify-content-center">
+<body data-overlayscrollbars-initialize>
 
-  <div class="hr-container d-flex flex-column" id="container">
+  <main class="d-flex justify-content-center">
 
-    <h1 class="text-center mb-4">Handwritten recognition</h1>
+    <div class="hr-container d-flex flex-column" id="container">
 
-    <div class="mb-4 d-flex" id="canvas-wrapper">
+      <h1 class="text-center mb-4">Hand drawn recognition</h1>
 
-      <canvas class="quad"></canvas>
-      <div class="fill"></div>
+      <div class="mb-4 d-flex" id="canvas-wrapper">
 
-    </div>
+        <canvas class="quad"></canvas>
+        <div class="fill"></div>
 
-    <div class="d-flex flex-wrap justify-content-center mb-4">
+      </div>
 
-      <button class="btn btn-success mx-2 my-1 p-1 button" id="resetBtn">New</button>
+      <div class="d-flex flex-wrap justify-content-evenly mb-4">
 
-      <button class="btn btn-success mx-2 my-1 p-1 button" id="clearBtn">Clear</button>
+        <button class="btn button button-small btn-light mx-2 my-1 p-1 button" id="resetBtn">New</button>
 
-    </div>
+        <button class="btn button button-small btn-light mx-2 my-1 p-1 button" id="clearBtn">Clear</button>
 
-    <div class="output-container mb-3">
+      </div>
 
-      <div id="output" class="label-grid d-flex justify-content-center align-items-center">
+      <div class="output-container mb-3">
 
-        <img class="spinner" src="./images/spinner.gif" width="70" height="70" alt="spinner" />
+        <div id="output" class="label-grid d-flex justify-content-center align-items-center">
+
+          <img class="spinner" src="./images/spinner.gif" width="70" height="70" alt="spinner" />
+
+        </div>
+
+      </div>
+
+      <div class="text-center alert w-100 d-flex justify-content-center align-items-center p-0 mb-3" role="alert" id="message">
+
+        <img class="spinner" src="./images/spinner.gif" width="30" height="30" alt="spinner" />
+
+      </div>
+
+      <div class="d-flex flex-wrap justify-content-center">
+
+        <button class="btn button btn-light w-100 p-1" id="predictBtn">Send</button>
 
       </div>
 
     </div>
 
-    <div class="text-center alert alert-success w-100 d-flex justify-content-center align-items-center p-0 mb-3" role="alert" id="message">
-
-      <img class="spinner" src="./images/spinner.gif" width="30" height="30" alt="spinner" />
-
-    </div>
-
-    <div class="d-flex flex-wrap justify-content-center">
-
-      <button class="btn btn-success w-100 p-1" id="predictBtn">Send</button>
-
-    </div>
-
-  </div>
+  </main>
 
   <script src="./js/app.min.js" defer></script>
 

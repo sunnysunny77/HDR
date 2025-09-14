@@ -38,15 +38,13 @@ let model;
 
 const labels = [
   "THAT", "WITH", "THIS", "THEY", "FROM", "HAVE", "WILL", "WERE", "BEEN", "MORE",
-  "SAID", "WHEN", "ONLY", "THEM", "LAST", "THAN", "INTO", "MADE", "SOME", "MOST",
+  "SAID", "ONLY", "WHEN", "THEM", "LAST", "THAN", "INTO", "MADE", "SOME", "MOST",
   "WHAT", "GOOD", "TIME", "EVEN", "ALSO", "WEST", "MANY", "SUCH", "OVER", "LIFE",
-  "THEN", "USED", "FILM", "WORK", "MUCH", "MAKE", "LIKE", "MUST", "PLAY", "WEEK",
-  "YOUR", "TAKE", "NEED", "MISS", "WELL", "DOWN", "YEAR", "HERE", "PART", "DAYS",
-  "VERY", "HOME", "FOUR", "JUST", "LONG", "BACK", "SEEN", "EACH", "WENT", "FULL",
-  "CASE", "NEXT", "BOTH", "DONE", "TOLD", "WANT", "COME", "SHOW", "NATO", "LEFT",
-  "LORD", "SAME", "KNOW", "DOES", "VIEW", "GIRL", "HELP", "FACT", "TEXT", "SIDE",
-  "SAYS", "REAL", "MIND", "LOVE", "GIVE", "LIVE", "EVER", "FACE", "ROOM", "BOOK",
-  "FIVE", "HALF", "BEST", "EAST", "PLAN", "EASY", "FIND", "FREE", "REST"
+  "THEN", "USED", "WORK", "FILM", "MUCH", "MAKE", "MUST", "LIKE", "PLAY", "WEEK",
+  "YOUR", "TAKE", "MISS", "NEED", "DOWN", "WELL", "YEAR", "HERE", "PART", "DAYS",
+  "FOUR", "HOME", "VERY", "BACK", "LONG", "JUST", "EACH", "SEEN", "WENT", "FULL",
+  "BOTH", "CASE", "NEXT", "DONE", "SHOW", "COME", "TOLD", "WANT", "NATO", "LEFT",
+  "SAME", "LORD", "KNOW", "DOES"
 ];
 
 const loadModel = async () => {

@@ -28,12 +28,12 @@ for line in RAW:
         LABELS.append(label)
 
 BATCH_SIZE = 128
-NUM_SAMPLES_PER_WORD = 1000
+NUM_SAMPLES_PER_WORD = 500
 
 LABELS = np.char.upper(np.array(LABELS))
 UNIQUE, COUNTS = np.unique(LABELS, return_counts=True)
 ORDER = np.argsort(-COUNTS)
-TOP = UNIQUE[ORDER][:100]
+TOP = UNIQUE[ORDER][:75]
 
 VALID_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 WORDS = [w for w in TOP if set(w).issubset(VALID_CHARS)]
