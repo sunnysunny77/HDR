@@ -72,14 +72,6 @@ h1 {
 
 .output-container {
   aspect-ratio: 2.5 / 1;
-  position: relative;
-  ::after {
-    content: " ";
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-color: transparentize($alpha, 0.9);
-  }
 }
 
 .label-grid {
@@ -87,6 +79,7 @@ h1 {
   height: 100%;
   img {
     width: 100%;
+    opacity: 0.9;
   }
 }
 
@@ -113,7 +106,9 @@ h1 {
     transition: transform 0.3s ease-in-out;
     transform: translateX(0);
     will-change: transform;
-    font-size: 18px;
+    i {
+      font-size: 18;
+    }
   }
   &:hover span {
     transform: translateX(25%);
@@ -128,4 +123,5 @@ h1 {
 
 .spinner {
   object-fit: contain;
+  opacity: 1;
 }

@@ -47,7 +47,7 @@
 
         <div id="output" class="label-grid d-flex justify-content-center align-items-center">
 
-          <img class="spinner" src="./images/spinner.gif" width="70" height="70" alt="spinner" />
+          <img class="spinner" src="./images/spinner.gif" width="30" height="30" alt="spinner" />
 
         </div>
 
@@ -61,7 +61,7 @@
 
       <div class="d-flex flex-wrap justify-content-center">
 
-        <button class="btn button btn-light button-large w-100 d-flex flex-warp align-items-center justify-content-center p-1" id="predictBtn">Send<span class="d-inline-block ms-2">&rarr;</span></button>
+        <button class="btn button btn-light button-large w-100 d-flex flex-warp align-items-center justify-content-center p-1" id="predictBtn">Send<span class="d-flex flex-warp align-items-center justify-content-center ms-2"><i class="fa-solid fa-arrow-right"></i></span></button>
 
       </div>
 
