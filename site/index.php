@@ -61,7 +61,7 @@
 
       <div class="d-flex flex-wrap justify-content-center">
 
-        <button class="btn button btn-light button-large w-100 d-flex flex-warp align-items-center justify-content-center p-1" id="predictBtn">Send<span class="d-inline-block ms-2">&rarr;<span></button>
+        <button class="btn button btn-light button-large w-100 d-flex flex-warp align-items-center justify-content-center p-1" id="predictBtn">Send<span class="d-inline-block ms-2">&rarr;</span></button>
 
       </div>
 
