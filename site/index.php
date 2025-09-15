@@ -47,7 +47,7 @@
 
         <div id="output" class="label-grid d-flex justify-content-center align-items-center">
 
-          <img class="spinner" src="./images/spinner.gif" width="30" height="30" alt="spinner" />
+          <img class="spinner" src="./images/spinner.gif" width="35" height="35" alt="spinner" />
 
         </div>
 
@@ -55,7 +55,7 @@
 
       <div class="text-center alert w-100 d-flex justify-content-center align-items-center p-0 mb-3" role="alert" id="message">
 
-        <img class="spinner" src="./images/spinner.gif" width="30" height="30" alt="spinner" />
+        <img class="spinner" src="./images/spinner.gif" width="35" height="35" alt="spinner" />
 
       </div>
 
