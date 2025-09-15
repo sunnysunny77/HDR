@@ -27,11 +27,19 @@
 
       </div>
 
-      <div class="d-flex flex-wrap justify-content-evenly mb-4">
+      <div class="row justify-content-evenly mb-4 g-0">
 
-        <button class="btn button button-small btn-light mx-2 my-1 p-1 button" id="resetBtn">New</button>
+        <div class="col-8 col-sm-4 d-flex justify-content-center">
 
-        <button class="btn button button-small btn-light mx-2 my-1 p-1 button" id="clearBtn">Clear</button>
+          <button class="btn button button-small btn-light w-100 my-1 p-1 button" id="resetBtn">New</button>
+
+        </div>
+
+        <div class="col-8 col-sm-4 d-flex justify-content-center">
+
+          <button class="btn button button-small btn-light w-100 my-1 p-1 button" id="clearBtn">Clear</button>
+
+        </div>
 
       </div>
 
@@ -53,7 +61,7 @@
 
       <div class="d-flex flex-wrap justify-content-center">
 
-        <button class="btn button btn-light w-100 p-1" id="predictBtn">Send</button>
+        <button class="btn button btn-light button-large w-100 d-flex flex-warp align-items-center justify-content-center p-1" id="predictBtn">Send<span class="d-inline-block ms-2">&rarr;<span></button>
 
       </div>
 
