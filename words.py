@@ -32,7 +32,6 @@ df = pd.read_csv("./emnist-byclass-test.csv", header=None)
 df
 
 # Perparing the data
-
 # Drop unnecessary comments
 word_meta_raw = word_meta[18:]
 
@@ -92,9 +91,7 @@ plt.title("After Fix (Upright Orientation)")
 plt.axis("off")
 plt.show()
 
-
 # Generate words from letters
-
 # Constants
 num_samples_per_word = 500
 num_words = len(word_array)
