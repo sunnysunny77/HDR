@@ -12,7 +12,7 @@ from tensorflow.keras.optimizers import AdamW
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.data import Dataset
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import multilabel_confusion_matrix, precision_score, recall_score, accuracy_score
+from sklearn.metrics import classification_report, multilabel_confusion_matrix, accuracy_score
 
 # Setting gpu optimizations
 tf.keras.mixed_precision.set_global_policy("mixed_float16")
@@ -26,7 +26,7 @@ with open("./words.txt") as text:
 for line in word_meta[:20]:
     print(repr(line))
 
-df = pd.read_csv("./emnist-byclass-test.csv", header=None)
+df = pd.read_csv("./emnist-byclass-train.csv", header=None)
 
 # Individual letters
 df
@@ -269,40 +269,16 @@ y_test_pred = model.predict(test_ds)
 y_test_labels = y_test.argmax(axis=1)
 y_pred_test_labels = y_test_pred.argmax(axis=1)
 
-# Overall accuracy on test
-overall_test_accuracy = accuracy_score(y_test_labels, y_pred_test_labels)
-print("Test Accuracy:", overall_test_accuracy)
-
-# Per-class confusion matrices
+# Metrics
+acc = accuracy_score(y_test_labels, y_pred_test_labels)
 mcm_test = multilabel_confusion_matrix(y_test_labels, y_pred_test_labels)
+report = classification_report(y_test_labels, y_pred_test_labels, target_names=word_array)
 
-# Per-class metrics
-precisions_test = precision_score(y_test_labels, y_pred_test_labels, average=None, zero_division=0)
-recalls_test = recall_score(y_test_labels, y_pred_test_labels, average=None, zero_division=0)
-
-# Build DataFrame for test set
-results_test = []
-for cls, cm in enumerate(mcm_test):
+print(f"\n Overall Accuracy: {acc*100:.2f}%")
+print(report)
+for i, cm in enumerate(mcm_test):
     tn, fp, fn, tp = cm.ravel()
-    y_true_bin = (y_test_labels == cls).astype(int)
-    y_pred_bin = (y_pred_test_labels == cls).astype(int)
-    acc = accuracy_score(y_true_bin, y_pred_bin)
-    results_test.append({
-        "Word": word_array[cls],
-        "TP": tp,
-        "TN": tn,
-        "FP": fp,
-        "FN": fn,
-        "Precision": precisions_test[cls],
-        "Recall": recalls_test[cls],
-        "Accuracy": acc,
-    })
-
-df_metrics_test = pd.DataFrame(results_test)
-df_metrics_test = df_metrics_test.sort_values(by="Accuracy", ascending=False)
-
-pd.set_option("display.max_rows", None)
-print(df_metrics_test)
+    print(f"Class {i} ({word_array[i]}): TP={tp}, FP={fp}, TN={tn}, FN={fn}")
 
 # Save the model
 tf.saved_model.save(model, "HR")
