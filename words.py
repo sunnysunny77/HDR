@@ -13,10 +13,14 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.data import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, multilabel_confusion_matrix, accuracy_score
+from sklearn.ensemble import RandomForestClassifier
 
 # Setting gpu optimizations
 tf.keras.mixed_precision.set_global_policy("mixed_float16")
 tf.config.optimizer.set_jit(True)
+
+# pd rows
+pd.set_option("display.max_rows", None)
 
 # Loading and inspecting the data
 with open("./words.txt") as text:
@@ -29,7 +33,9 @@ for line in word_meta[:20]:
 df = pd.read_csv("./emnist-byclass-train.csv", header=None)
 
 # Individual letters
-df
+print(df.head())
+print(df.info())
+print(df.isnull().sum())
 
 # Perparing the data
 # Drop unnecessary comments
@@ -74,13 +80,14 @@ word_dict = {word: index for index, word in enumerate(word_array)}
 mask = (10 <= y_letters) & (y_letters <= 35)
 X_letters, y_letters = X_letters[mask], y_letters[mask] - 10
 
-# Fix orientaion of letters
+# Take the first letter and reshape from flattened (784,) to 28x28 2D for visualization
 before = X_letters[0].reshape(28, 28)
 plt.imshow(before, cmap='gray')
 plt.title("Before Fix (Original EMNIST Orientation)")
 plt.axis("off")
 plt.show()
 
+# Reshape all letters from flattened (784,) to 28x28 2D images and fix EMNIST orientation
 X_letters = X_letters.reshape(-1, 28, 28)
 X_letters = np.flip(np.rot90(X_letters, k=3, axes=(1, 2)), axis=2)
 
@@ -143,8 +150,6 @@ X_train, X_val, y_train, y_val = train_test_split(
     X_train, y_train, test_size=0.1, random_state=42, stratify=y_train.argmax(axis=1)
 )
 
-print(f"Train: {X_train.shape}, Val: {X_val.shape}, Test: {X_test.shape}")
-
 # Augmentation pipeline
 augmentation = tf.keras.Sequential([
     tf.keras.layers.RandomRotation(0.05),
@@ -180,7 +185,15 @@ test_ds = (
     .prefetch(tf.data.AUTOTUNE)
 )
 
+print(X_train.shape)     
+print(X_train.dtype)    
+print(y_train.shape)
+print(np.unique(y_train)) 
+print(f"Train samples: {len(X_train)}, Val samples: {len(X_val)}, Test samples: {len(X_test)}")
+
 # Define model
+
+#shape = (28, 112, 1) 28 → number of rows (height) 112 → number of columns (width) 1 → number of channels (grayscale)
 inputs = layers.Input(shape=(img_height, img_width, 1))
 
 x = layers.Conv2D(16, 3, strides=1, padding="same", use_bias=False)(inputs)
@@ -253,6 +266,8 @@ model.compile(
     metrics=["accuracy"]
 )
 
+model.summary()
+
 # Training the model
 model.fit(
     train_ds,
@@ -264,7 +279,7 @@ model.fit(
     ]
 )
 
-# Predict on test set
+# Evaluation
 y_test_pred = model.predict(test_ds)
 y_test_labels = y_test.argmax(axis=1)
 y_pred_test_labels = y_test_pred.argmax(axis=1)
@@ -273,15 +288,73 @@ y_pred_test_labels = y_test_pred.argmax(axis=1)
 acc = accuracy_score(y_test_labels, y_pred_test_labels)
 mcm_test = multilabel_confusion_matrix(y_test_labels, y_pred_test_labels)
 report = classification_report(y_test_labels, y_pred_test_labels, target_names=word_array)
+data = []
 
 print(f"\n Overall Accuracy: {acc*100:.2f}%")
 print(report)
 for i, cm in enumerate(mcm_test):
     tn, fp, fn, tp = cm.ravel()
-    print(f"Class {i} ({word_array[i]}): TP={tp}, FP={fp}, TN={tn}, FN={fn}")
+    class_acc = tp / (tp + fn) if (tp + fn) > 0 else 0
+    data.append({
+        "Class": word_array[i],
+        "TP": tp,
+        "FP": fp,
+        "TN": tn,
+        "FN": fn,
+        "Accuracy": f"{class_acc*100:.2f}%"
+    })
+df_class_metrics = pd.DataFrame(data)
+print(df_class_metrics)
 
 # Save the model
 tf.saved_model.save(model, "HR")
 
 # Convert the model for web
 !tensorflowjs_converter --input_format=tf_saved_model --output_format=tfjs_graph_model HR tfjs_model
+
+# Flatten images for sklearn
+X_train_flat = X_train.reshape(len(X_train), -1)
+X_val_flat   = X_val.reshape(len(X_val), -1)
+X_test_flat  = X_test.reshape(len(X_test), -1)
+
+# Labels
+y_train_labels = y_train.argmax(axis=1)
+y_val_labels   = y_val.argmax(axis=1)
+y_test_labels  = y_test.argmax(axis=1)
+
+# Define model
+clf = RandomForestClassifier(
+    n_estimators=200, 
+    max_depth=None, 
+    random_state=42,
+    n_jobs=-1
+)
+
+# Training the model
+clf.fit(X_train_flat, y_train_labels)
+
+# Evaluation
+y_pred = clf.predict(X_test_flat)
+
+# Metrics
+acc = accuracy_score(y_test_labels, y_pred)
+mcm_test = multilabel_confusion_matrix(y_test_labels, y_pred)
+report = classification_report(y_test_labels, y_pred, target_names=word_array)
+data = []
+
+print(f"\n Overall Accuracy: {acc*100:.2f}%")
+print(report)
+for i, cm in enumerate(mcm_test):
+    tn, fp, fn, tp = cm.ravel()
+    class_acc = tp / (tp + fn) if (tp + fn) > 0 else 0
+    data.append({
+        "Class": word_array[i],
+        "TP": tp,
+        "FP": fp,
+        "TN": tn,
+        "FN": fn,
+        "Accuracy": f"{class_acc*100:.2f}%"
+    })
+
+df_class_metrics = pd.DataFrame(data)
+print(df_class_metrics)
