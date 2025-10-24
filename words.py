@@ -4,7 +4,7 @@ import pandas as pd
 import tensorflow as tf
 import cv2
 import matplotlib.pyplot as plt
-from tensorflow.keras.losses import CategoricalFocalCrossentropy
+from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras import layers, models
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.utils import to_categorical
@@ -19,8 +19,30 @@ from sklearn.ensemble import RandomForestClassifier
 tf.keras.mixed_precision.set_global_policy("mixed_float16")
 tf.config.optimizer.set_jit(True)
 
-# pd rows
+# pd 
 pd.set_option("display.max_rows", None)
+pd.set_option("display.max_columns", None)
+
+def dataset_summary(df, show_counts=True):
+    total_rows = len(df)
+    
+    summary = pd.DataFrame({
+        "dtype": df.dtypes,
+        "non_null_count": df.notna().sum(),
+        "missing_count": df.isna().sum(),
+        "missing_%": (df.isna().mean() * 100).round(2),
+        "unique_count": df.nunique(),
+        "duplicated": df.duplicated().sum()
+    })
+
+    print(f"Dataset shape: {df.shape}")
+    if show_counts:
+        print(f"Total rows: {total_rows}")
+        print(f"Total duplicate rows: {summary['duplicated'].sum()}")
+    
+    summary = summary.sort_values(by="missing_%", ascending=False)
+    
+    return summary
 
 # Loading and inspecting the data
 with open("./words.txt") as text:
@@ -30,12 +52,11 @@ with open("./words.txt") as text:
 for line in word_meta[:20]:
     print(repr(line))
 
+# Individual letters
 df = pd.read_csv("./emnist-byclass-train.csv", header=None)
 
-# Individual letters
-print(df.head())
-print(df.info())
-print(df.isnull().sum())
+# Summary
+print(dataset_summary(df))
 
 # Perparing the data
 # Drop unnecessary comments
@@ -185,9 +206,9 @@ test_ds = (
     .prefetch(tf.data.AUTOTUNE)
 )
 
-print(X_train.shape)     
-print(X_train.dtype)    
-print(y_train.shape)
+print("Number of features:", X_train.shape[1])
+print("X_train_balanced shape:", X_train.shape)
+print("y_train_balanced shape:", y_train.shape)
 print(np.unique(y_train)) 
 print(f"Train samples: {len(X_train)}, Val samples: {len(X_val)}, Test samples: {len(X_test)}")
 
@@ -200,57 +221,54 @@ x = layers.Conv2D(16, 3, strides=1, padding="same", use_bias=False)(inputs)
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
 
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
 x = layers.Conv2D(32, 3, strides=1, padding="same", use_bias=False)(x)
-
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+
 x = layers.Conv2D(32, 3, strides=2, padding="same", use_bias=False)(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
 x = layers.SpatialDropout2D(0.1)(x)
 
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
 x = layers.Conv2D(32, 3, strides=1, padding="same", use_bias=False)(x)
-
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+
 x = layers.Conv2D(32, 3, strides=1, padding="same", use_bias=False)(x)
-
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+
 x = layers.Conv2D(64, 3, strides=2, padding="same", use_bias=False)(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
 x = layers.SpatialDropout2D(0.1)(x)
 
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
 x = layers.Conv2D(64, 3, strides=1, padding="same", use_bias=False)(x)
-
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+
 x = layers.Conv2D(64, 3, strides=1, padding="same", use_bias=False)(x)
-
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+
 x = layers.Conv2D(128, 3, strides=2, padding="same", use_bias=False)(x)
+x = layers.BatchNormalization()(x)
+x = layers.ReLU()(x)
 x = layers.SpatialDropout2D(0.15)(x)
 
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
 x = layers.Conv2D(128, 3, strides=1, padding="same", use_bias=False)(x)
-
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+
 x = layers.Conv2D(128, 3, strides=1, padding="same", use_bias=False)(x)
-
 x = layers.BatchNormalization()(x)
 x = layers.ReLU()(x)
+
 x = layers.GlobalAveragePooling2D()(x)
 
-x = layers.BatchNormalization()(x)
-x = layers.ReLU()(x)
 x = layers.Dense(128, use_bias=False)(x)
-
+x = layers.BatchNormalization()(x) #
+x = layers.ReLU()(x)
 x = layers.Dropout(0.3)(x)
 
 outputs = layers.Dense(num_words, activation="softmax", dtype="float32")(x)
@@ -258,11 +276,9 @@ outputs = layers.Dense(num_words, activation="softmax", dtype="float32")(x)
 model = models.Model(inputs, outputs)
 
 # Compile the model
-# Focal loss focuses more on hard-to-classify examples (those the model predicts with low confidence) by down-weighting easy examples.
-# Label smoothing replaces the hard 1/0 with slightly “softer” values:
 model.compile(
     optimizer=AdamW(learning_rate=1e-3, weight_decay=1e-4),
-    loss=CategoricalFocalCrossentropy(gamma=2.0, from_logits=False, label_smoothing=0.1),
+    loss=CategoricalCrossentropy(label_smoothing=0.1),
     metrics=["accuracy"]
 )
 
