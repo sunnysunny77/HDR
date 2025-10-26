@@ -161,6 +161,11 @@ plt.title("Generated Word Example")
 plt.axis("off")
 plt.show()
 
+# Summary
+X_train_flat = X_train.reshape(X_train.shape[0], -1)  # shape -> (37000, 28*112*1)
+X_train_df = pd.DataFrame(X_train_flat, columns=[f"pixel_{i}" for i in range(X_train_flat.shape[1])])
+print(dataset_summary(X_train_df))
+
 # Split off test set (10% of original data)
 X_train, X_test, y_train, y_test = train_test_split(
     X_train, y_train, test_size=0.1, random_state=42, stratify=y_train.argmax(axis=1)
