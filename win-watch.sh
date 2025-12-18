@@ -18,14 +18,18 @@ npm run https-server &
 
 S3=$!
 
-npm run watch-css &
+npm run express-server &
 
 S4=$!
 
-start "https://${CN}:3000" &
+npm run watch-css &
 
 S5=$!
 
+start "https://${CN}:3000" &
+
+S6=$!
+
 wait
  
-kill "${S1}" "${S2}" "${S3}" "${S4}" "${S5}"
+kill "${S1}" "${S2}" "${S3}" "${S4}" "${S5}" "${S6}"
