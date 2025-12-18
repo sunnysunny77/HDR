@@ -19,18 +19,14 @@ npm run https-server &
 
 S3=$!
 
-npm run express-server &
+npm run watch-css &
 
 S4=$!
 
-npm run watch-css &
+xdg-open "https://${CN}:3000" &
 
 S5=$!
 
-xdg-open "https://${CN}:3000" &
-
-S6=$!
-
 wait
  
-kill "${S1}" "${S2}" "${S3}" "${S4}" "${S5}" "${S6}"
+kill "${S1}" "${S2}" "${S3}" "${S4}" "${S5}"
